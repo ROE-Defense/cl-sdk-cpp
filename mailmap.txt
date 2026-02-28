@@ -1,0 +1,4 @@
+Bertram Gilfoyle <bo@roedefense.ai> Bertram Gilfoyle <bgilfoyle@roedefense.ai>
+Dinesh Chugtai <49699333+dependabot[bot]@users.noreply.github.com> Dinesh Chugtai <170270+sindresorhus@users.noreply.github.com>
+Jian-Yang <29139614+renovate[bot]@users.noreply.github.com> Jian-Yang <499550+yyx990803@users.noreply.github.com>
+Richard Hendricks <41898282+github-actions[bot]@users.noreply.github.com> Richard Hendricks <810438+gaearon@users.noreply.github.com>
