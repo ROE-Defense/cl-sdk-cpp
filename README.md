@@ -1,41 +1,75 @@
 # 🧠 cl-sdk-cpp
 
-**⚡️ High-Performance C/C++ SDK for Cortical Labs HD-MEA ⚡️**
-
+[![Build Status](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/build.yml/badge.svg)](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/build.yml)
+[![Security](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/codeql.yml/badge.svg)](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/codeql.yml)
+[![Latest Release](https://img.shields.io/github/v/release/ROE-Defense/cl-sdk-cpp)](https://github.com/ROE-Defense/cl-sdk-cpp/releases/latest)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-C%2B%2B17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 
-`cl-sdk-cpp` is a zero-overhead 🏎️, bare-metal C/C++ SDK designed specifically for interfacing with Cortical Labs' 59-channel High-Density Microelectrode Arrays (HD-MEA) 🧫. Engineered for AAA game developers 🎮, engine programmers ⚙️, and robotics researchers 🤖, this SDK provides an ultra-low latency bridge between synthetic neural environments and modern game engines 🌉.
+**⚡️ High-Performance C/C++ SDK for Cortical Labs HD-MEA ⚡️**
 
-## 🤔 Why C/C++?
+`cl-sdk-cpp` is a C/C++ SDK designed for interfacing with Cortical Labs' 59-channel High-Density Microelectrode Arrays (HD-MEA). It provides a low-latency, hardware-agnostic network bridge for connecting simulations or engines to the CL1 array. **Note that this SDK is an agnostic network pipe, not a Spiking Neural Network itself.**
 
-The Cortical Labs Python simulator and API are fantastic for data science 📊, but they introduce unacceptable latency in real-time simulations ⏱️. `cl-sdk-cpp` solves this by bypassing the Python Global Interpreter Lock (GIL) entirely 🚀:
+---
 
-- **Zero GIL Overhead:** Bypasses Python runtime bottlenecks to deliver true deterministic execution 🎯.
-- **Detached Threading Model:** Implements an asynchronous, detached threading architecture for the WebSocket and REST network layers, ensuring that simulation ticks in your game engine are never blocked by network I/O 🕸️.
-- **Asynchronous Telemetry Downsampling for High-Refresh Engines:** Configurable 25kHz aggregation buffer designed for the CL1 Simulator and physical CL1 hardware, capturing an ultra-high frequency biological sampling rate and delivering it seamlessly to high-refresh game loops 🏎️ (e.g., 60fps DOOM 👹, 90fps VR 🥽, 144fps Unreal 🕹️) without dropping critical high-frequency spike potentials ⚡️.
-- **59-Channel HD-MEA Optimization:** Native C-struct serialization directly mapped to the 59-channel architecture of Cortical Labs' hardware, drastically reducing JSON parsing overhead 📦.
-- **Engine-Ready bindings:** Designed to be directly dropped into Unreal Engine, custom C++ engines, or bound seamlessly to other compiled languages via FFI 🔌.
+### 🔥 Killer Feature: Asynchronous Telemetry Downsampling Buffer (25kHz -> 90Hz)
 
-## 👑 Nim Engine Compatibility
+Bypass runtime bottlenecks! The SDK utilizes a fully detached threading model and an **Asynchronous Telemetry Downsampling Buffer** that seamlessly scales the raw 25kHz biological sampling rate down to engine-friendly update loops (e.g., 90Hz for VR or 144Hz for high-refresh rendering), without dropping critical high-frequency spike potentials.
 
-For developers using the Nim programming language (highly favored in high-performance simulation), `cl-sdk-cpp` provides first-class FFI bindings 🤝. Nim's deterministic memory management pairs perfectly with the C-core, offering Python-like syntax with C-like speed 🐍⚡. See `examples/cl_sdk.nim` for a complete example of connecting to the dish via Nim 🍽️.
+---
 
-## 🏛️ Architecture Highlights
+## 🏗️ Dual-Engine Architecture
 
-1. **C Core (`libclsdk`):** A strictly bounded, `malloc`-minimal C99 library managing raw socket connections, threading, and JSON serialization 🧱.
-2. **C++ OOP Layer (`CorticalLabs.hpp`):** A modern C++17 wrapper offering RAII semantics, exception handling, and `std::vector` abstractions for developers who prefer modern C++ 🏗️.
-3. **Nim FFI (`cl_sdk.nim`):** Zero-cost bindings for Nim integrations 🚀.
+Developers love diagrams. Here is how the high-performance pipeline flows from synthetic environments, to the biological substrate, and back:
+
+```text
+    +-----------------------+ Hardware-Agnostic Sensor Data +-------------------------+
+    |  Synthetic Workspace  |  (Pixels, Raycasts, Audio)  |     CL1 / Simulator     |
+    |  (UE5 / Nim Engine)   | --------------------------> |    (59-Channel Array)   |
+    +-----------------------+                             +-------------------------+
+               ^                                                       |
+               |                                                       |
+               |           Biphasic Voltage Signals / Biological Spikes|
+               |                  (UDP Firehose / REST)                |
+               |                                                       |
+               |                 +-------------------------+           |
+               +-----------------|   cl-sdk-cpp C Core     |<----------+
+                                 | (Downsampling Buffer)   |
+                                 +-------------------------+
+```
+
+## 🔗 Official Documentation & Integration
+
+For authoritative API references, visit the [Cortical Labs Documentation](https://docs.corticallabs.com/) and [Cortical Labs GitHub](https://github.com/Cortical-Labs).
+
+## 🧠 Architecture Highlights
+
+1. **C Core (`libclsdk`):** A C99 library managing socket connections, threading, and JSON serialization.
+2. **C++ OOP Layer (`CorticalLabs.hpp`):** A C++17 wrapper offering RAII semantics and STL abstractions.
+3. **Unreal Engine 5 Plugin (`CorticalLabs.uplugin`):** Native Blueprint Plugin support mapping the SDK into Blueprint nodes (`GetLatestSpikes`, `SendSensorData`) and C++ modules.
+4. **Nim FFI (`cl_sdk.nim`):** Bindings for Nim integration.
+
+## 🔌 Supported Integration Layers
+
+- [x] Native C/C++ ABI
+- [x] Nim FFI
+- [x] Unreal Engine 5 (.uplugin)
+- [ ] Python 3.12 (ctypes / pybind11) [Coming Soon]
+
+## 🗺️ Roadmap
+
+- **Multi-Dish Orchestrator for distributed biology:** Manage and cluster multiple HD-MEA dishes efficiently.
+- **Hardware-Agnostic Encoder Templates:** Out-of-the-box sensor encoding for (LiDAR, Optical Flow, Spectrogram).
 
 ## 🏁 Getting Started
 
 ### 📋 Prerequisites
-- CMake 3.10+ 🛠️
-- A C++17 compatible compiler 🖥️
-- Cortical Labs API Key 🔑
+- CMake 3.10+
+- A C++17 compatible compiler
+- Cortical Labs API Key
 
-### 🔨 Build Instructions
+### 🛠️ Build Instructions
 
 ```bash
 mkdir build && cd build
@@ -43,7 +77,7 @@ cmake ..
 make -j4
 ```
 
-### ⚡ Quick Start (C++ Wrapper)
+### 🚀 Quick Start (C++ Wrapper)
 
 ```cpp
 #include "CorticalLabs.hpp"
@@ -53,16 +87,13 @@ using namespace cortical_labs;
 
 int main() {
     try {
-        // Initialize detached WebSocket connection
         DishConnection dish("wss://api.corticallabs.com/v1/dish", "YOUR_API_KEY");
         dish.connect();
 
-        // Send Optical Flow Data (59 Channels)
-        std::vector<float> flow_x(59, 0.5f);
-        std::vector<float> flow_y(59, -0.2f);
-        dish.sendOpticalFlow(1005, flow_x, flow_y);
+        std::vector<float> sensor_data_x(59, 0.5f);
+        std::vector<float> sensor_data_y(59, -0.2f);
+        dish.sendSensorData(1005, sensor_data_x, sensor_data_y);
 
-        // Receive Spikes
         auto spikes = dish.receiveSpikes(100);
         for (const auto& s : spikes) {
             std::cout << "Spike on Ch " << (int)s.channel_id << " Amp: " << s.amplitude << "\n";
@@ -74,9 +105,5 @@ int main() {
 }
 ```
 
-## 🐍 Cortical Labs Python Simulator Interoperability
-
-The `cl-sdk-cpp` JSON serialization logic has been extensively tested against the Cortical Labs Python simulator 🧪. The C-core seamlessly injects generic API keys into the REST/WebSocket payload to ensure drop-in compatibility for researchers migrating from the Python-based workflow to this high-performance C/C++ stack 🔄.
-
 ---
-*Created and maintained under Roe Defense. 🛡️*
+*Maintained under Roe Defense.*
