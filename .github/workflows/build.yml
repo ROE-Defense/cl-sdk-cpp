@@ -8,10 +8,18 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, ubuntu-latest]
+        build_type: [Release, Debug]
+      fail-fast: false
+
     steps:
     - uses: actions/checkout@v3
+
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release
+      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+
     - name: Build
-      run: cmake --build ${{github.workspace}}/build
+      run: cmake --build ${{github.workspace}}/build --config ${{ matrix.build_type }}

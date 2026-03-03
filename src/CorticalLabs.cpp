@@ -1,4 +1,4 @@
-#include "CorticalLabs.hpp"
+#include "CorticalLabs/CorticalLabs.hpp"
 #include <iostream>
 
 namespace cortical_labs {
