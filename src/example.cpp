@@ -16,7 +16,7 @@ int main() {
         // Polling raw SNN spikes from HD-MEA
         auto spikes = dish.receiveSpikes(10);
         for (const auto& spike : spikes) {
-            std::cout << "[example] ⚡ RX Spike: CH=" << (int)spike.channel_id 
+            std::cout << "[example] RX Spike: CH=" << (int)spike.channel_id 
                       << " | AMP=" << spike.amplitude 
                       << " | TS=" << spike.timestamp << "\n";
         }
