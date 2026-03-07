@@ -64,6 +64,11 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow);
 /// @return Number of spikes received, up to max_spikes
 int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spikes);
 
+/// @brief Start a high-performance UDP Spike Firehose listener for raw CL1 spike streams
+/// @param port UDP port to listen on
+/// @return Socket file descriptor, or -1 on failure
+int cl_listen_udp_firehose(int port);
+
 #ifdef __cplusplus
 }
 #endif
