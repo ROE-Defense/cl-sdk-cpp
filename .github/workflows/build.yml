@@ -35,11 +35,17 @@ jobs:
     - name: Start Mock CL1 WebSocket Server
       run: |
         python tests/mock_cl1_server.py &
+        echo $! > mock_server.pid
         sleep 2
 
     - name: Run Tests
       working-directory: ${{github.workspace}}/build
       run: ctest -C ${{ matrix.build_type }} --output-on-failure
+
+    - name: Tear Down Mock Server
+      if: always()
+      run: |
+        kill $(cat mock_server.pid) || true
 
     - name: Run Benchmarks
       working-directory: ${{github.workspace}}/build

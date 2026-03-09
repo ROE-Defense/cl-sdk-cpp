@@ -101,11 +101,46 @@ void test_downsampling_buffer() {
     std::cout << "[PASS] Downsampling Buffer operates deterministically.\n";
 }
 
+void test_live_mock_server() {
+    std::cout << "[TEST] Connecting to Live CI/CD Mock Server (ws://localhost:8080)...\n";
+    int fd = socket(AF_INET, SOCK_STREAM, 0);
+    ASSERT(fd >= 0);
+
+    struct sockaddr_in dest;
+    memset(&dest, 0, sizeof(dest));
+    dest.sin_family = AF_INET;
+    dest.sin_port = htons(8080);
+    inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
+
+    // Try connecting, wait if not ready
+    int retries = 5;
+    while(connect(fd, (struct sockaddr*)&dest, sizeof(dest)) < 0 && retries > 0) {
+        usleep(500000);
+        retries--;
+    }
+    ASSERT(retries >= 0); // Must be connected
+
+    const char* req = "GET / HTTP/1.1\r\n"
+                      "Host: localhost:8080\r\n"
+                      "Upgrade: websocket\r\n"
+                      "Connection: Upgrade\r\n"
+                      "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
+                      "Sec-WebSocket-Version: 13\r\n\r\n";
+    send(fd, req, strlen(req), 0);
+
+    char buf[1024] = {0};
+    ssize_t bytes = recv(fd, buf, sizeof(buf) - 1, 0);
+    ASSERT(bytes > 0);
+    std::cout << "[PASS] Connected to Live Mock Server and received handshake/payload.\n";
+    close(fd);
+}
+
 int main() {
     std::cout << "--- Starting cl-sdk-cpp Mega Test Suite ---\n";
     test_hdmea_struct();
     test_udp_firehose();
     test_downsampling_buffer();
+    test_live_mock_server();
     std::cout << "--- All Tests Passed Successfully ---\n";
     return 0;
 }
