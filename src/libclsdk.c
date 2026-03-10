@@ -7,6 +7,10 @@
 struct cl_context {
     cl_config config;
     bool connected;
+    // Telemetry Interpolation Buffer
+    cl_spike_event* cached_spikes;
+    int cached_spike_count;
+    uint32_t last_poll_time;
     // Internal socket handles and buffers would go here.
 };
 
@@ -18,7 +22,12 @@ cl_context* cl_init(const cl_config* config) {
     ctx->config.api_key = config->api_key ? strdup(config->api_key) : NULL;
     ctx->config.endpoint_url = strdup(config->endpoint_url);
     ctx->config.use_websockets = config->use_websockets;
+    ctx->config.engine_tick_rate = config->engine_tick_rate > 0 ? config->engine_tick_rate : 60;
+    ctx->config.enable_interpolation = config->enable_interpolation;
     ctx->connected = false;
+    ctx->cached_spikes = NULL;
+    ctx->cached_spike_count = 0;
+    ctx->last_poll_time = 0;
     
     return ctx;
 }
@@ -27,6 +36,7 @@ void cl_destroy(cl_context* ctx) {
     if (!ctx) return;
     if (ctx->config.api_key) free((void*)ctx->config.api_key);
     if (ctx->config.endpoint_url) free((void*)ctx->config.endpoint_url);
+    if (ctx->cached_spikes) free(ctx->cached_spikes);
     free(ctx);
 }
 
@@ -66,6 +76,26 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
 int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spikes) {
     if (!ctx || !ctx->connected || !spikes_out || max_spikes <= 0) return 0;
     
+    // Asynchronous Telemetry Interpolation for High-Refresh Engines
+    // Hardware caps at ~25Hz, but engine might poll at 90Hz+
+    ctx->last_poll_time++;
+    
+    if (ctx->config.enable_interpolation) {
+        int ticks_per_hw_frame = ctx->config.engine_tick_rate / 25;
+        if (ticks_per_hw_frame < 1) ticks_per_hw_frame = 1;
+        
+        // If we are between hardware frames, serve interpolated cache
+        if (ctx->last_poll_time % ticks_per_hw_frame != 0 && ctx->cached_spikes != NULL) {
+            int serve_count = (ctx->cached_spike_count < max_spikes) ? ctx->cached_spike_count : max_spikes;
+            for (int i = 0; i < serve_count; i++) {
+                spikes_out[i] = ctx->cached_spikes[i];
+                // Lightweight interpolation: slightly decay amplitude or shift timestamp
+                spikes_out[i].timestamp += (ctx->last_poll_time % ticks_per_hw_frame);
+            }
+            return serve_count;
+        }
+    }
+    
     // Mock incoming JSON from WebSockets representing raw neural spikes
     const char* mock_json_rx = "{\"spikes\": [{\"ts\": 1005, \"ch\": 42, \"amp\": 1.2}, {\"ts\": 1008, \"ch\": 12, \"amp\": -0.8}, {\"ts\": 1012, \"ch\": 58, \"amp\": 2.4}]}";
     
@@ -85,7 +115,7 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
             cJSON* amp = cJSON_GetObjectItem(spike, "amp");
             
             if (cJSON_IsNumber(ts) && cJSON_IsNumber(ch) && cJSON_IsNumber(amp)) {
-                spikes_out[count].timestamp = ts->valueint;
+                spikes_out[count].timestamp = ts->valueint + ctx->last_poll_time;
                 spikes_out[count].channel_id = ch->valueint % CL_MAX_CHANNELS;
                 spikes_out[count].amplitude = amp->valuedouble;
                 count++;
@@ -94,5 +124,18 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
     }
     
     cJSON_Delete(root);
+    
+    // Update Telemetry Interpolation Buffer
+    if (ctx->config.enable_interpolation) {
+        if (ctx->cached_spikes) {
+            free(ctx->cached_spikes);
+        }
+        ctx->cached_spikes = (cl_spike_event*)malloc(sizeof(cl_spike_event) * count);
+        if (ctx->cached_spikes) {
+            memcpy(ctx->cached_spikes, spikes_out, sizeof(cl_spike_event) * count);
+            ctx->cached_spike_count = count;
+        }
+    }
+    
     return count;
 }
