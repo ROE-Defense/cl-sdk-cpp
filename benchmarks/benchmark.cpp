@@ -1,91 +1,108 @@
+#include "CorticalLabs/CorticalLabs.hpp"
 #include <iostream>
 #include <chrono>
 #include <vector>
-#include <cstring>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include "CorticalLabs/CorticalLabs.hpp"
+#include <numeric>
+#include <algorithm>
+#include <iomanip>
+#include <cmath>
 
 using namespace cortical_labs;
 
-void benchmark_json_deserialization() {
-    std::cout << "Benchmarking JSON Deserialization (Mock API)...\n";
-    cl_config cfg;
-    cfg.endpoint_url = "wss://mock";
-    cfg.api_key = "mock";
-    cfg.use_websockets = true;
-    cfg.engine_tick_rate = 144;
-    cfg.enable_downsampling = false; // Disable to force JSON parsing on every call
+int main() {
+    // Instantiate downsampling buffer using C API directly since wrapper lacks enable_downsampling
+    cl_config config = {0};
+    config.endpoint_url = "wss://api.corticallabs.com/v1/dish";
+    config.api_key = "BENCHMARK_KEY";
+    config.use_websockets = true;
+    config.engine_tick_rate = 90;
+    config.enable_downsampling = true;
 
-    cl_context* ctx = cl_init(&cfg);
+    cl_context* ctx = cl_init(&config);
+    if (!ctx) {
+        std::cerr << "Failed to init SDK." << std::endl;
+        return 1;
+    }
+
     cl_connect(ctx);
 
-    std::vector<cl_spike_event> spikes(100);
+    const int iterations = 1000000;
+    std::vector<double> latencies;
+    latencies.reserve(iterations);
 
-    auto start = std::chrono::high_resolution_clock::now();
-    int iterations = 10000;
+    cl_spike_event spikes[10];
+
     for (int i = 0; i < iterations; ++i) {
-        cl_receive_spikes(ctx, spikes.data(), 100);
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        // Simulating "spike insertions" into the downsampling buffer
+        cl_receive_spikes(ctx, spikes, 10);
+        
+        auto end = std::chrono::high_resolution_clock::now();
+        
+        std::chrono::duration<double, std::micro> elapsed = end - start;
+        latencies.push_back(elapsed.count());
     }
-    auto end = std::chrono::high_resolution_clock::now();
+
+    // Process statistics
+    std::sort(latencies.begin(), latencies.end());
     
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "JSON Parsing Time: " << duration / (double)iterations << " µs per iteration.\n";
+    double sum = std::accumulate(latencies.begin(), latencies.end(), 0.0);
+    double mean = sum / iterations;
+    double p99 = latencies[std::min(static_cast<int>(iterations * 0.99), iterations - 1)];
+    double max_lat = latencies.back();
+
+    std::cout << "\n========================================================\n";
+    std::cout << "   Cortical Labs HD-MEA Downsampling Buffer Benchmark   \n";
+    std::cout << "========================================================\n";
+    std::cout << "Insertions Simulated: " << iterations << "\n";
+    std::cout << "Mean Latency:         " << mean << " us\n";
+    std::cout << "99th Percentile:      " << p99 << " us\n";
+    std::cout << "Max Latency:          " << max_lat << " us\n\n";
+
+    // Create ASCII histogram
+    std::cout << "Latency Distribution Histogram (Microseconds):\n";
+    std::cout << "--------------------------------------------------------\n";
+    
+    const int num_bins = 20;
+    double min_lat = latencies.front();
+    // Exclude extreme outliers for histogram calculation if p99 is much smaller than max
+    double hist_max = std::min(max_lat, p99 * 2.0); 
+    if (hist_max <= min_lat) hist_max = min_lat + 1.0;
+    
+    double bin_width = (hist_max - min_lat) / num_bins;
+
+    std::vector<int> bins(num_bins, 0);
+    int overflow = 0;
+    for (double lat : latencies) {
+        if (lat >= hist_max) {
+            overflow++;
+            continue;
+        }
+        int bin = std::max(0, std::min(static_cast<int>((lat - min_lat) / bin_width), num_bins - 1));
+        bins[bin]++;
+    }
+
+    int max_freq = *std::max_element(bins.begin(), bins.end());
+    if (max_freq == 0) max_freq = 1;
+
+    for (int i = 0; i < num_bins; ++i) {
+        double bin_start = min_lat + i * bin_width;
+        double bin_end = bin_start + bin_width;
+        std::cout << std::fixed << std::setprecision(2) << std::setw(8) << bin_start << " - " 
+                  << std::setw(8) << bin_end << " us | ";
+        
+        int bar_len = static_cast<int>(40.0 * bins[i] / max_freq);
+        std::string bar(bar_len, '#');
+        std::cout << std::setw(40) << std::left << bar << " " << bins[i] << "\n";
+    }
+    if (overflow > 0) {
+        std::cout << std::setw(8) << " > " << std::setw(11) << hist_max << " us | " 
+                  << std::setw(40) << std::left << std::string(1, '+') << " " << overflow << "\n";
+    }
+    std::cout << "========================================================\n";
 
     cl_destroy(ctx);
-}
 
-void benchmark_udp_parsing() {
-    std::cout << "Benchmarking Raw UDP Spike Firehose...\n";
-    
-    int port = 9091;
-    int fd = DishConnection::listenUdpFirehose(port);
-    if (fd < 0) {
-        std::cerr << "Failed to bind port\n";
-        return;
-    }
-    
-    int sender_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    struct sockaddr_in dest;
-    memset(&dest, 0, sizeof(dest));
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(port);
-    inet_pton(AF_INET, "127.0.0.1", &dest.sin_addr);
-
-    struct RawSpike {
-        uint32_t ts;
-        uint8_t ch;
-        float amp;
-    } __attribute__((packed));
-
-    RawSpike send_spike = { 1000, 42, 1.5f };
-    RawSpike recv_spike;
-    struct sockaddr_in src;
-    socklen_t srclen = sizeof(src);
-
-    int iterations = 10000;
-    auto start = std::chrono::high_resolution_clock::now();
-    
-    for (int i = 0; i < iterations; ++i) {
-        sendto(sender_fd, &send_spike, sizeof(send_spike), 0, (struct sockaddr*)&dest, sizeof(dest));
-        recvfrom(fd, &recv_spike, sizeof(recv_spike), 0, (struct sockaddr*)&src, &srclen);
-    }
-    
-    auto end = std::chrono::high_resolution_clock::now();
-    
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Raw UDP Firehose Time: " << duration / (double)iterations << " µs per spike (Round Trip, Zero JSON Overhead).\n";
-
-    close(sender_fd);
-    close(fd);
-}
-
-int main() {
-    std::cout << "--- cl-sdk-cpp High-Performance Benchmarks ---\n";
-    benchmark_json_deserialization();
-    benchmark_udp_parsing();
-    std::cout << "--- Benchmarks Complete ---\n";
     return 0;
 }

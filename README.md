@@ -70,6 +70,9 @@ For authoritative API references, visit the [Cortical Labs Documentation](https:
 
 - **Multi-Dish Orchestrator for distributed biology:** Manage and cluster multiple HD-MEA dishes efficiently.
 - **Hardware-Agnostic Encoder Templates:** Out-of-the-box sensor encoding for (LiDAR, Sensor Data, Spectrogram).
+- **Lock-Free Ring Buffers (SPSC) for zero-copy, zero-allocation microsecond memory pipelines.**
+- **`.cl1_rec` Binary Replay System for deterministic, frame-by-frame biological session debugging.**
+- **Native PyTorch / Jupyter Integration via `pybind11` for seamless AI research workflows.**
 
 ## 🏁 Getting Started
 

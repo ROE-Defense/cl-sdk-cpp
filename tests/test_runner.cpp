@@ -24,9 +24,9 @@ void test_hdmea_struct() {
     ASSERT(sizeof(cl_spike_event) == 12 || sizeof(cl_spike_event) == 16); 
     ASSERT(CL_MAX_CHANNELS == 59);
     
-    cl_optical_flow flow;
-    ASSERT(sizeof(flow.flow_x) / sizeof(float) == 59);
-    ASSERT(sizeof(flow.flow_y) / sizeof(float) == 59);
+    cl_sensor_data flow;
+    ASSERT(sizeof(flow.data_x) / sizeof(float) == 59);
+    ASSERT(sizeof(flow.data_y) / sizeof(float) == 59);
     std::cout << "[PASS] Struct formatting is correct.\n";
 }
 

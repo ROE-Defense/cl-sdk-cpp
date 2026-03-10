@@ -33,5 +33,5 @@ add_executable(cl_sdk_tests tests/test_runner.cpp)
 target_link_libraries(cl_sdk_tests PRIVATE CorticalLabsCpp)
 add_test(NAME CLSDKTests COMMAND cl_sdk_tests)
 
-add_executable(cl_sdk_benchmark benchmarks/benchmark.cpp)
-target_link_libraries(cl_sdk_benchmark PRIVATE CorticalLabsCpp)
+add_executable(cl_benchmark benchmarks/benchmark.cpp)
+target_link_libraries(cl_benchmark PRIVATE CorticalLabsCpp)

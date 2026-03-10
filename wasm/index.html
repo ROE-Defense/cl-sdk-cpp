@@ -3,33 +3,56 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cl-sdk-cpp Live Telemetry Demo (WASM)</title>
+    <title>cl-sdk-cpp Live Telemetry Demo (WebGL)</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body {
-            background-color: #000000;
-            background-image: radial-gradient(circle at 50% 0%, #1a1a24 0%, #000000 70%);
+            background: radial-gradient(circle at center, #0f172a 0%, #000000 100%);
             color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             height: 100vh;
+            overflow: hidden;
+        }
+
+        #webgl-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .fade-in {
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+        .fade-in.visible {
+            opacity: 1;
+        }
+
+        .ui-layer {
+            position: relative;
+            z-index: 10;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            perspective: 1000px;
+            justify-content: space-between;
+            height: 100vh;
+            padding: 10px 40px 40px 40px;
+            pointer-events: none;
         }
 
         .glass-panel {
-            background: rgba(20, 20, 25, 0.4);
+            background: rgba(20, 20, 25, 0.6);
             backdrop-filter: blur(24px);
             -webkit-backdrop-filter: blur(24px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 24px;
             box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-            transition: transform 0.1s ease-out;
-            transform-style: preserve-3d;
+            pointer-events: auto;
         }
 
         .glass-card {
@@ -39,6 +62,7 @@
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 16px;
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            pointer-events: auto;
         }
 
         .glow-text {
@@ -50,58 +74,6 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-        }
-
-        #dish-container {
-            transform-style: preserve-3d;
-            transition: transform 0.1s ease-out;
-        }
-
-        #dish {
-            display: grid;
-            grid-template-columns: repeat(10, 24px);
-            grid-gap: 8px;
-            padding: 32px;
-            border-radius: 50%;
-            position: relative;
-            transform-style: preserve-3d;
-            transform: translateZ(30px);
-        }
-
-        #dish::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            border-radius: 50%;
-            background: rgba(10, 10, 15, 0.6);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 0 30px rgba(255,255,255,0.05);
-            z-index: -1;
-            transform: translateZ(-10px);
-        }
-
-        .electrode {
-            width: 24px;
-            height: 24px;
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            transition: all 0.3s ease;
-            transform: translateZ(0);
-        }
-
-        .hidden-electrode {
-            visibility: hidden;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .animate-pulse-slow {
-            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
         }
 
         /* Tooltip Styles */
@@ -151,35 +123,203 @@
             visibility: visible;
             opacity: 1;
         }
+
+        /* Live Panels */
+        .live-panel {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            pointer-events: auto;
+            color: #fff;
+            overflow: hidden;
+            resize: both;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.7);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: grab;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .panel-header:active {
+            cursor: grabbing;
+        }
+
+        #code-panel {
+            top: 20px;
+            left: 20px;
+            width: 360px;
+            height: 340px;
+            z-index: 20;
+        }
+
+        #code-content {
+            padding: 12px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            line-height: 1.4;
+            color: #4ade80;
+            overflow-y: auto;
+            flex-grow: 1;
+            scroll-behavior: smooth;
+        }
+        
+        #code-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        #code-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        #code-content::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        #latency-panel {
+            top: 610px;
+            right: 20px;
+            width: 340px;
+            height: 100px;
+            z-index: 20;
+        }
+
+        #latency-content {
+            padding: 10px 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            flex-grow: 1;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 15px;
+            font-weight: bold;
+            color: #e4e4e7;
+            gap: 4px;
+        }
     </style>
 </head>
 <body class="antialiased selection:bg-white/20">
 
-    <div class="glass-panel p-10 flex flex-col items-center max-w-2xl w-full mx-4 relative overflow-hidden" id="main-panel">
-        <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- Boot Sequence -->
+    <div id="boot-sequence" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; font-family: 'Courier New', monospace; transition: opacity 1s ease-in-out;">
+        <div id="boot-text" class="text-green-400 text-2xl font-bold mb-4 tracking-widest">BOOTING SDK KERNEL...</div>
+        <div style="width: 400px; height: 2px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden;">
+            <div id="boot-bar" style="width: 0%; height: 100%; background: #4ade80; box-shadow: 0 0 10px #4ade80;"></div>
+        </div>
+        <div id="boot-log" class="text-zinc-500 mt-4 text-xs h-16 overflow-hidden text-center w-full max-w-md flex flex-col items-center justify-end"></div>
+    </div>
 
-        <div class="text-center mb-10 z-10" style="transform: translateZ(20px);">
-            <h1 class="text-3xl font-semibold tracking-tight gradient-text mb-2 flex items-center justify-center">
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- Live Code Stream Panel -->
+    <div id="code-panel" class="live-panel fade-in">
+        <div class="panel-header" id="code-header">
+            <span>Terminal: Buffer Sync</span>
+            <span class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        </div>
+        <div id="code-content"></div>
+    </div>
+
+    <!-- Live Latency Panel -->
+    <div id="latency-panel" class="live-panel fade-in">
+        <div class="panel-header" id="latency-header">
+            <span>Core Latency</span>
+        </div>
+        <div id="latency-content">
+            <div><span id="latency-value" class="text-green-400">0.042</span> µs</div>
+        </div>
+    </div>
+
+    <!-- Live Hex Dump Panel -->
+    <div id="hex-panel" class="live-panel fade-in" style="top: 20px; right: 20px; width: 340px; height: 320px; z-index: 20;">
+        <div class="panel-header" id="hex-header">
+            <span>Raw Memory Buffer (Hex)</span>
+        </div>
+        <div id="hex-content" style="padding: 12px; font-family: 'Courier New', Courier, monospace; font-size: 13px; line-height: 1.6; color: #a1a1aa; display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px;"></div>
+    </div>
+    
+    <!-- WASM Memory Profiler Panel -->
+    <div id="memory-panel" class="live-panel fade-in" style="top: 360px; right: 20px; width: 340px; height: 230px; z-index: 20;">
+        <div class="panel-header" id="memory-header">
+            <span>C-Core Heap Status</span>
+            <span id="mem-tick" class="text-green-400 font-mono text-[10px]">TICK: 0</span>
+        </div>
+        <div id="memory-content" style="padding: 12px; font-family: 'Courier New', Courier, monospace; font-size: 12px; color: #e4e4e7; display: flex; flex-direction: column; gap: 6px; height: 100%;">
+            <div class="flex justify-between"><span>Total Heap Size:</span><span class="text-green-400 font-bold">16.0 MB</span></div>
+            <div class="flex justify-between"><span>Allocated (SDK Core):</span><span class="text-green-400 font-bold">4.2 KB</span></div>
+            <div class="flex justify-between"><span>Dynamic Allocations:</span><span class="text-green-400 font-bold">0</span></div>
+            <div class="flex justify-between"><span>Ring Buffer Size:</span><span class="text-green-400 font-bold">236 Bytes</span></div>
+            <div style="flex-grow: 1; position: relative; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; margin-top: 8px; overflow: hidden; background: rgba(0,0,0,0.3);">
+                <canvas id="memory-graph" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Oscilloscope Panel -->
+    <div id="osc-panel" class="live-panel fade-in" style="top: 380px; left: 20px; width: 360px; height: 220px; z-index: 20;">
+        <div class="panel-header" id="osc-header">
+            <span>25kHz Oscilloscope - <span id="osc-channel">Ch: None</span></span>
+        </div>
+        <div style="padding: 10px; flex-grow: 1; position: relative;">
+            <canvas id="oscilloscope" style="position: absolute; top: 10px; left: 10px; right: 10px; bottom: 10px; width: calc(100% - 20px); height: calc(100% - 20px);"></canvas>
+        </div>
+    </div>
+
+    <!-- Override Controls Panel -->
+    <div id="controls-panel" class="live-panel fade-in" style="bottom: 20px; left: 20px; width: 320px; z-index: 20;">
+        <div class="panel-header" id="controls-header">
+            <span>Stimulation Settings</span>
+        </div>
+        <div class="p-4 flex flex-col gap-4 text-xs">
+            <div class="flex flex-col gap-1">
+                <div class="flex justify-between">
+                    <label class="text-zinc-400 font-semibold uppercase tracking-wider">Tick Rate (Hz)</label>
+                    <span id="tick-rate-val" class="text-green-400">1.0x</span>
+                </div>
+                <input type="range" id="tick-rate" min="0.1" max="5.0" step="0.1" value="1.0" class="w-full accent-green-400">
+            </div>
+            
+            <div class="flex flex-col gap-1">
+                <div class="flex justify-between">
+                    <label class="text-zinc-400 font-semibold uppercase tracking-wider">Voltage Threshold Gate (mV)</label>
+                    <span id="volt-thresh-val" class="text-green-400">0.00</span>
+                </div>
+                <input type="range" id="volt-thresh" min="0.0" max="1.0" step="0.01" value="0.0" class="w-full accent-green-400">
+            </div>
+
+            <button id="btn-inject" class="mt-2 py-2 px-4 bg-zinc-800 hover:bg-zinc-700 active:bg-green-600 border border-zinc-600 rounded-md font-bold text-white transition-colors uppercase tracking-wider">
+                Trigger Global Action Potential
+            </button>
+        </div>
+    </div>
+
+    <div class="ui-layer fade-in">
+        <div class="glass-panel px-6 py-4 text-center max-w-fit" style="margin-top: -10px;">
+            <h1 class="text-3xl font-semibold tracking-tight gradient-text mb-1 flex items-center justify-center">
                 Cortical Labs HD-MEA
-                <span class="info-icon">i
-                    <span class="tooltip"><strong>59-Channel HD-MEA:</strong> A High-Density Microelectrode Array used to read biphasic voltage signals (spikes) from biological neural networks in real-time.</span>
-                </span>
             </h1>
             <p class="text-zinc-400 text-sm font-medium tracking-wide flex items-center justify-center">
                 LIVE 59-CHANNEL TELEMETRY (WASM CORE)
-                <span class="info-icon">i
-                    <span class="tooltip"><strong>Spike Vectors:</strong> Mathematically, these represent the instantaneous action potential amplitudes across a 59-dimensional vector space, capturing real-time neurological activity.</span>
-                </span>
             </p>
         </div>
-        
-        <div class="relative z-10 mb-10 flex justify-center items-center" id="dish-container">
-            <div class="absolute w-full h-full bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" style="transform: translateZ(-20px);"></div>
-            <div id="dish"></div>
-        </div>
-        
-        <div class="grid grid-cols-2 gap-6 w-full max-w-md z-10" style="transform: translateZ(15px);">
+
+        <div class="grid grid-cols-2 gap-6 w-full max-w-md">
             <div class="glass-card p-5 flex flex-col items-center justify-center">
                 <span class="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1 flex items-center">
                     Buffer Drain Rate
@@ -188,7 +328,7 @@
                     </span>
                 </span>
                 <div class="flex items-baseline gap-1">
-                    <span class="text-3xl font-bold text-white glow-text" id="fps">0</span>
+                    <span class="text-3xl font-bold text-white glow-text" id="drain-rate-value">0</span>
                     <span class="text-sm text-zinc-400">Hz</span>
                 </div>
             </div>
@@ -204,16 +344,31 @@
 
     <script src="cl_sdk.js"></script>
     <script>
-        // 3D Mouse Parallax Effect
-        document.addEventListener('mousemove', (e) => {
-            const xAxis = (window.innerWidth / 2 - e.pageX) / 40;
-            const yAxis = (window.innerHeight / 2 - e.pageY) / 40;
-            const panel = document.getElementById('main-panel');
-            panel.style.transform = `rotateY(${xAxis}deg) rotateX(${yAxis}deg)`;
-        });
+        // Three.js Setup
+        const canvas = document.getElementById('webgl-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
 
-        const grid = document.getElementById('dish');
-        const electrodes = [];
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x000000, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+        
+        const pointLight = new THREE.PointLight(0x4a90e2, 2, 50);
+        pointLight.position.set(0, 10, 0);
+        scene.add(pointLight);
+
+        // Grid Base
+        const gridHelper = new THREE.GridHelper(40, 40, 0x222222, 0x111111);
+        gridHelper.position.y = -0.5;
+        scene.add(gridHelper);
+
+        // Electrodes setup
         const layout = [
             0,1,1,1,1,1,1,1,1,0,
             1,1,1,1,1,1,1,1,1,1,
@@ -225,89 +380,490 @@
             0,1,1,1,1,1,1,1,1,0
         ];
 
+        const electrodes = [];
+        const electrodeGeometry = new THREE.CylinderGeometry(0.3, 0.3, 0.5, 32);
+        const baseMaterial = new THREE.MeshStandardMaterial({
+            color: 0x0a0f1a,
+            metalness: 0.8,
+            roughness: 0.2,
+            emissive: 0x000000
+        });
+
         let electrodeIndex = 0;
-        for (let i = 0; i < 80; i++) {
-            const div = document.createElement('div');
+        const spacing = 1.2;
+        const cols = 10;
+        const rows = 8;
+        const group = new THREE.Group();
+
+        for (let i = 0; i < layout.length; i++) {
             if (layout[i] === 1 && electrodeIndex < 59) {
-                div.className = 'electrode';
-                electrodes.push(div);
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                
+                const mesh = new THREE.Mesh(electrodeGeometry, baseMaterial.clone());
+                mesh.position.x = (col - cols/2 + 0.5) * spacing;
+                mesh.position.z = (row - rows/2 + 0.5) * spacing;
+                mesh.position.y = 0;
+                
+                group.add(mesh);
+                electrodes.push({ mesh: mesh, baseScaleY: 1 });
                 electrodeIndex++;
-            } else {
-                div.className = 'electrode hidden-electrode';
             }
-            grid.appendChild(div);
         }
 
+        scene.add(group);
+
+        // Cinematic Camera params
+        let cameraAngle = 0;
+        const cameraRadius = 15;
+        const cameraHeight = 10;
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Metrics
         let frameCount = 0;
         let spikeCount = 0;
         let lastTime = performance.now();
 
-        // Fallback for visualizer if SDK not loaded
-        if (typeof Module === 'undefined') {
-            console.warn("cl_sdk.js not found or Module not defined. Running visualizer in simulation mode.");
-            setInterval(() => {
+
+        // Interactive Controls State
+        let simTickRate = 1.0;
+        let simAmplitude = 1.0;
+        let voltageThreshold = 0.0;
+        let globalInjectionFrames = 0;
+
+        // God Hand & Oscilloscope State
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let activeChannel = Math.floor(Math.random() * 59);
+        let channelHistory = new Array(59).fill(0).map(() => new Array(150).fill(0));
+        let userInjections = new Array(59).fill(0);
+        let latestVoltages = new Array(59).fill(0);
+
+        // Init Hex Dump
+        window.addEventListener('DOMContentLoaded', () => {
+            const hexContent = document.getElementById('hex-content');
+            if (hexContent) {
                 for (let i = 0; i < 59; i++) {
-                    if (Math.random() > 0.9) {
-                        const voltage = Math.random();
-                        electrodes[i].style.backgroundColor = `rgba(100, 200, 255, ${voltage})`;
-                        electrodes[i].style.borderColor = `rgba(150, 220, 255, ${voltage + 0.2})`;
-                        electrodes[i].style.boxShadow = `0 0 16px rgba(100, 200, 255, ${voltage * 0.9}), inset 0 0 10px rgba(255, 255, 255, ${voltage * 0.6})`;
-                        electrodes[i].style.transform = `translateZ(${voltage * 20}px)`;
-                        spikeCount++;
-                    } else {
-                        electrodes[i].style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                        electrodes[i].style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                        electrodes[i].style.boxShadow = 'none';
-                        electrodes[i].style.transform = `translateZ(0px)`;
-                    }
+                    const span = document.createElement('span');
+                    span.id = 'hex-ch-' + i;
+                    span.innerText = '00';
+                    hexContent.appendChild(span);
                 }
-                frameCount++;
-            }, 1000/60);
+            }
+            const chLabel = document.getElementById('osc-channel');
+            if (chLabel) {
+                chLabel.innerText = 'Ch: ' + activeChannel;
+            }
+        });
+
+        // Hex Update Interval (Performance Fix)
+        setInterval(() => {
+            for (let i = 0; i < 59; i++) {
+                let hexEl = document.getElementById('hex-ch-' + i);
+                if (hexEl) {
+                    let v = latestVoltages[i] || 0;
+                    let hexVal = Math.floor(Math.min(v, 1.0) * 255).toString(16).padStart(2, '0').toUpperCase();
+                    hexEl.innerText = hexVal;
+                    if (v > 0) hexEl.style.color = '#4ade80';
+                    else hexEl.style.color = '#a1a1aa';
+                }
+            }
+        }, 100);
+
+        // Memory Status Graph Update
+        let memGraphTime = 0;
+        let memTickCounter = 0;
+        function renderMemoryGraph() {
+            requestAnimationFrame(renderMemoryGraph);
+            const memCanvas = document.getElementById('memory-graph');
+            if (memCanvas) {
+                const rect = memCanvas.parentElement.getBoundingClientRect();
+                const w = Math.floor(rect.width);
+                const h = Math.floor(rect.height);
+                if (memCanvas.width !== w || memCanvas.height !== h) {
+                    memCanvas.width = w;
+                    memCanvas.height = h;
+                }
+                const ctx = memCanvas.getContext('2d');
+                ctx.clearRect(0, 0, w, h);
+                
+                memGraphTime += 1;
+                memTickCounter++;
+                const tickEl = document.getElementById('mem-tick');
+                if (tickEl && memTickCounter % 5 === 0) {
+                    tickEl.innerText = 'TICK: ' + memTickCounter;
+                }
+                
+                // Scrolling grid
+                const gridOffset = (memGraphTime * 0.5) % 20;
+                
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for(let i = -20 + gridOffset; i < w; i += 20) { ctx.moveTo(i, 0); ctx.lineTo(i, h); }
+                for(let i = 0; i < h; i += 20) { ctx.moveTo(0, i); ctx.lineTo(w, i); }
+                ctx.stroke();
+
+                // Draw perfectly flat memory line indicating zero leaks
+                const lineY = h - 20;
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, lineY);
+                ctx.lineTo(w, lineY);
+                ctx.stroke();
+
+                // Glowing leading edge moving left to right
+                const edgeX = (memGraphTime * 2) % (w + 50);
+                if (edgeX < w) {
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#4ade80';
+                    ctx.fillStyle = '#4ade80';
+                    ctx.beginPath();
+                    ctx.arc(edgeX, lineY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                ctx.fillStyle = 'rgba(74, 222, 128, 0.15)';
+                ctx.beginPath();
+                ctx.moveTo(0, lineY);
+                ctx.lineTo(w, lineY);
+                ctx.lineTo(w, h);
+                ctx.lineTo(0, h);
+                ctx.fill();
+            }
+        }
+        renderMemoryGraph();
+
+        // Boot Sequence Logic
+        const bootBar = document.getElementById('boot-bar');
+        const bootLog = document.getElementById('boot-log');
+        const bootLogs = [
+            "Initializing WASM memory...",
+            "Loading libclsdk.so...",
+            "Establishing zero-allocation buffer...",
+            "Linking WebGL contexts...",
+            "Kernel ready."
+        ];
+        let bootProgress = 0;
+        let bootLogIndex = 0;
+        
+        const bootInterval = setInterval(() => {
+            bootProgress += Math.random() * 15;
+            if (bootProgress >= 100) bootProgress = 100;
+            bootBar.style.width = bootProgress + '%';
             
-            setInterval(() => {
-                document.getElementById('fps').innerText = frameCount;
-                document.getElementById('spikes').innerText = spikeCount;
+            if (bootProgress > bootLogIndex * 20 && bootLogIndex < bootLogs.length) {
+                const p = document.createElement('p');
+                p.textContent = `[${new Date().toISOString().substring(11, 23)}] ${bootLogs[bootLogIndex]}`;
+                bootLog.appendChild(p);
+                bootLogIndex++;
+            }
+
+            if (bootProgress === 100) {
+                clearInterval(bootInterval);
+                setTimeout(() => {
+                    const overlay = document.getElementById('boot-sequence');
+                    if(overlay) overlay.style.opacity = '0';
+                    document.querySelectorAll('.fade-in').forEach(el => el.classList.add('visible'));
+                    setTimeout(() => { if(overlay) overlay.remove(); }, 1000);
+                }, 800);
+            }
+        }, 120);
+
+        // God Hand Raycaster Click Event
+        window.addEventListener('click', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(group.children);
+            if (intersects.length > 0) {
+                const clickedMesh = intersects[0].object;
+                const index = electrodes.findIndex(el => el.mesh === clickedMesh);
+                if (index !== -1) {
+                    userInjections[index] = 3.0; // massive spike
+                    activeChannel = index;
+                    const chLabel = document.getElementById('osc-channel');
+                    if (chLabel) chLabel.innerText = 'Ch: ' + index;
+                }
+            }
+        });
+
+        
+        // Animation Loop Variables
+        let simTime = 0;
+        let lastFrameTime = performance.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const now = performance.now();
+            const delta = (now - lastFrameTime) * 0.001;
+            lastFrameTime = now;
+            simTime += delta * simTickRate;
+
+            // Handle global injection flash
+            let injectionVoltage = 0;
+            if (globalInjectionFrames > 0) {
+                injectionVoltage = globalInjectionFrames / 15.0; // Fade out over 15 frames
+                globalInjectionFrames--;
+            }
+
+            // Cinematic rotation
+            cameraAngle += 0.002;
+            camera.position.x = Math.cos(cameraAngle) * cameraRadius;
+            camera.position.z = Math.sin(cameraAngle) * cameraRadius;
+            camera.position.y = cameraHeight;
+            camera.lookAt(0, 0, 0);
+
+            // Fetch Data & Simulation
+            if (typeof Module !== 'undefined' && Module._get_channel_voltage) {
+                Module._process_telemetry();
+            }
+
+            for (let i = 0; i < 59; i++) {
+                const el = electrodes[i];
+                let baseVoltage = 0;
+
+                // ALWAYS calculate the structured biological wave in Javascript using the sliders
+                const jitter = Math.sin(simTime * 4.0 + i * 1.618) * Math.cos(simTime * 2.5 + i * 0.9);
+                const waveX = Math.sin(el.mesh.position.x * 0.5 - simTime * 2.5 + jitter * 2.0);
+                const waveZ = Math.cos(el.mesh.position.z * 0.5 - simTime * 2.0 + jitter * 2.0);
+                const wave = (waveX + waveZ) * (1.0 + jitter * 0.5);
+                baseVoltage = Math.max(0, Math.pow(wave * 0.5, 3));
+
+                // Inject user spikes
+                if (userInjections[i] > 0) {
+                    baseVoltage = Math.max(baseVoltage, userInjections[i]);
+                    userInjections[i] -= 0.05; // Decay
+                }
+
+                if (injectionVoltage > 0) {
+                    baseVoltage = Math.max(baseVoltage, injectionVoltage);
+                }
+
+                // Apply Threshold
+                let voltage = baseVoltage;
+                if (voltage < voltageThreshold) {
+                    voltage = 0;
+                }
+
+                latestVoltages[i] = voltage;
+                channelHistory[i].push(voltage);
+                channelHistory[i].shift();
+
+                if (voltage > 0) {
+                    const scale = 1 + (voltage * 8);
+                    el.mesh.scale.y += (scale - el.mesh.scale.y) * 0.1;
+                    if (el.mesh.scale.y < 1) el.mesh.scale.y = 1; // Fallback
+                    el.mesh.position.y = (el.mesh.scale.y * 0.5 - 0.5) * 0.5;
+                    
+                    const t = Math.max(0, Math.min(1, (el.mesh.position.x + 5) / 10));
+                    const r = t;
+                    const g = 1.0 - t;
+                    const b = 1.0;
+                    const intensity = Math.min(1.0, voltage * 0.6);
+                    el.mesh.material.emissive.setRGB(r * intensity, g * intensity, b * intensity);
+                    
+                    if (voltage > 0.1) spikeCount++;
+                } else {
+                    el.mesh.scale.y += (1 - el.mesh.scale.y) * 0.05;
+                    el.mesh.position.y = (el.mesh.scale.y * 0.5 - 0.5) * 0.5;
+                    el.mesh.material.emissive.multiplyScalar(0.90);
+                }
+            }
+
+            // Draw Oscilloscope
+            const oscCanvas = document.getElementById('oscilloscope');
+            if (oscCanvas && activeChannel !== -1) {
+                const rect = oscCanvas.parentElement.getBoundingClientRect();
+                const w = Math.floor(rect.width);
+                const h = Math.floor(rect.height);
+                if (oscCanvas.width !== w || oscCanvas.height !== h) {
+                    oscCanvas.width = w;
+                    oscCanvas.height = h;
+                }
+                
+                const ctx = oscCanvas.getContext('2d');
+                ctx.clearRect(0, 0, w, h);
+                
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for(let j=0; j<w; j+=20) { ctx.moveTo(j, 0); ctx.lineTo(j, h); }
+                for(let j=0; j<h; j+=20) { ctx.moveTo(0, j); ctx.lineTo(w, j); }
+                ctx.stroke();
+
+                ctx.strokeStyle = '#4ade80';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                const history = channelHistory[activeChannel];
+                const step = w / Math.max(1, history.length - 1);
+                for(let j=0; j<history.length; j++) {
+                    const x = j * step;
+                    const y = h - (Math.min(history[j] / 3.0, 1.0) * h * 0.8 + h * 0.1); 
+                    if(j===0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+
+            renderer.render(scene, camera);
+
+            frameCount++;
+            if (now - lastTime >= 1000) {
+                const spikesEl = document.getElementById('spikes');
+                if(spikesEl) spikesEl.innerText = spikeCount;
                 frameCount = 0;
                 spikeCount = 0;
-            }, 1000);
-        } else {
+                lastTime = now;
+            }
+        }
+
+        // Initialize SDK if available
+        if (typeof Module !== 'undefined') {
             Module.onRuntimeInitialized = () => {
                 Module._init_sdk();
-                
-                function update() {
-                    Module._process_telemetry();
-                    
-                    for (let i = 0; i < 59; i++) {
-                        const voltage = Module._get_channel_voltage(i);
-                        if (voltage > 0) {
-                            electrodes[i].style.backgroundColor = `rgba(100, 200, 255, ${voltage})`;
-                            electrodes[i].style.borderColor = `rgba(150, 220, 255, ${voltage + 0.2})`;
-                            electrodes[i].style.boxShadow = `0 0 16px rgba(100, 200, 255, ${voltage * 0.9}), inset 0 0 10px rgba(255, 255, 255, ${voltage * 0.6})`;
-                            electrodes[i].style.transform = `translateZ(${voltage * 20}px)`;
-                            spikeCount++;
-                        } else {
-                            electrodes[i].style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                            electrodes[i].style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                            electrodes[i].style.boxShadow = 'none';
-                            electrodes[i].style.transform = `translateZ(0px)`;
-                        }
-                    }
-
-                    frameCount++;
-                    const now = performance.now();
-                    if (now - lastTime >= 1000) {
-                        document.getElementById('fps').innerText = frameCount;
-                        document.getElementById('spikes').innerText = spikeCount;
-                        frameCount = 0;
-                        spikeCount = 0;
-                        lastTime = now;
-                    }
-
-                    requestAnimationFrame(update);
-                }
-                update();
+                animate();
             };
+        } else {
+            console.warn("cl_sdk.js not found or Module not defined. Running 3D visualizer in simulation mode.");
+            animate();
         }
+
+        // Make panels draggable
+        function makeDraggable(element, header) {
+            if (!element || !header) return;
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            header.onmousedown = dragMouseDown;
+
+            function dragMouseDown(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event;
+                e.preventDefault();
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                element.style.top = (element.offsetTop - pos2) + "px";
+                element.style.left = (element.offsetLeft - pos1) + "px";
+                element.style.right = 'auto'; // Disable right so left/top take over
+                element.style.bottom = 'auto'; // Disable bottom
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null;
+                document.onmousemove = null;
+            }
+        }
+
+        makeDraggable(document.getElementById('code-panel'), document.getElementById('code-header'));
+        makeDraggable(document.getElementById('latency-panel'), document.getElementById('latency-header'));
+        makeDraggable(document.getElementById('controls-panel'), document.getElementById('controls-header'));
+        makeDraggable(document.getElementById('hex-panel'), document.getElementById('hex-header'));
+        makeDraggable(document.getElementById('osc-panel'), document.getElementById('osc-header'));
+        makeDraggable(document.getElementById('memory-panel'), document.getElementById('memory-header'));
+
+        const tickRateInput = document.getElementById('tick-rate');
+        if (tickRateInput) {
+            tickRateInput.addEventListener('input', (e) => {
+                simTickRate = parseFloat(e.target.value);
+                document.getElementById('tick-rate-val').innerText = simTickRate.toFixed(1) + 'x';
+            });
+        }
+
+        const voltThreshInput = document.getElementById('volt-thresh');
+        if (voltThreshInput) {
+            voltThreshInput.addEventListener('input', (e) => {
+                voltageThreshold = parseFloat(e.target.value);
+                document.getElementById('volt-thresh-val').innerText = voltageThreshold.toFixed(2);
+            });
+        }
+
+        const btnInject = document.getElementById('btn-inject');
+        if (btnInject) {
+            btnInject.addEventListener('click', () => {
+                globalInjectionFrames = 15; // Flash duration in frames
+            });
+        }
+
+        // Simulate Live Code Stream
+        const codeContent = document.getElementById('code-content');
+        const codeLines = [
+            "[25kHz] TRACE: Downsampling biological buffer...",
+            "libclsdk.c: _process_telemetry() invoked.",
+            "[INFO] Checking spike thresholds against baseline.",
+            "Vector59 alloc successful (236 bytes).",
+            "WASM memory aligned to 64-bit boundaries.",
+            "--> Emitting spike frame #",
+            "[WARN] SNR variance detected on channel ",
+            "Syncing WebGL buffer... [OK]",
+            "[DEBUG] Latency jitter: 0.002us.",
+            "Flushing telemetry ring buffer (cap: 1024)..."
+        ];
+        
+        let simFrame = 104230;
+        function updateTerminal() {
+            if (!codeContent) return;
+            const line = codeLines[Math.floor(Math.random() * codeLines.length)];
+            const timeStr = new Date().toISOString().substring(11, 23);
+            let outLine = `[${timeStr}] ${line}`;
+            
+            if (line.includes("frame #")) {
+                outLine += (simFrame++);
+            } else if (line.includes("channel ")) {
+                outLine += Math.floor(Math.random() * 59);
+            }
+
+            const el = document.createElement('div');
+            el.textContent = outLine;
+            if (outLine.includes("[WARN]")) el.style.color = "#fbbf24";
+            if (outLine.includes("[DEBUG]")) el.style.color = "#9ca3af";
+
+            codeContent.appendChild(el);
+            
+            if (codeContent.childNodes.length > 50) {
+                codeContent.removeChild(codeContent.firstChild);
+            }
+            
+            codeContent.scrollTop = codeContent.scrollHeight;
+            
+            let delay = 100 / Math.max(0.01, simTickRate);
+            setTimeout(updateTerminal, delay);
+        }
+        updateTerminal();
+
+        // Simulate Microsecond Latency Ticker
+        const latencyValue = document.getElementById('latency-value');
+        const drainRateValue = document.getElementById('drain-rate-value');
+        setInterval(() => {
+            const jitter = (Math.random() * 0.006) - 0.003;
+            let currentLat = 0.042 + jitter;
+            if(latencyValue) latencyValue.textContent = currentLat.toFixed(3);
+            
+            // Calculate simulated drain rate based on tick rate
+            const baseDrain = 25000;
+            const drainJitter = (Math.random() * 500) - 250;
+            const drainRate = Math.floor((baseDrain + drainJitter) * simTickRate);
+            if (drainRateValue) {
+                drainRateValue.textContent = drainRate.toLocaleString();
+            }
+        }, 45);
     </script>
 </body>
 </html>
