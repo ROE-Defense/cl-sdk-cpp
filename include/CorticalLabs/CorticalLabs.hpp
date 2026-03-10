@@ -15,6 +15,13 @@ public:
     explicit HDMEAException(const std::string& msg) : std::runtime_error(msg) {}
 };
 
+/// @brief Configuration for connecting to multiple Dish endpoints simultaneously
+struct MultiDishConfig {
+    std::vector<std::string> endpoints;
+    int max_threads_per_dish = 2;
+    bool enable_orchestrator = true;
+};
+
 /// @brief Class managing connection to the Dish (HD-MEA)
 class DishConnection {
 private:
