@@ -16,7 +16,8 @@ For authoritative API references, visit the [Cortical Labs Documentation](https:
 
 1. **C Core (`libclsdk`):** A C99 library managing socket connections, threading, and JSON serialization.
 2. **C++ OOP Layer (`CorticalLabs.hpp`):** A C++17 wrapper offering RAII semantics and STL abstractions.
-3. **Nim FFI (`cl_sdk.nim`):** Bindings for Nim integration.
+3. **Unreal Engine 5 Plugin (`CorticalLabs.uplugin`):** Native Blueprint Plugin support mapping the SDK into Blueprint nodes (`GetLatestSpikes`, `SendOpticalFlow`) and C++ modules.
+4. **Nim FFI (`cl_sdk.nim`):** Bindings for Nim integration.
 
 ## Getting Started
 
