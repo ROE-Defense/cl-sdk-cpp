@@ -1,4 +1,4 @@
-#include "cl_sdk.h"
+#include "CorticalLabs/cl_sdk.h"
 #include "../third_party/cJSON.h"
 #include <stdlib.h>
 #include <string.h>
