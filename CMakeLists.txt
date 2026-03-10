@@ -25,3 +25,13 @@ target_link_libraries(CorticalLabsCpp PUBLIC clsdk_c_core)
 # C++ Example Binary
 add_executable(cl_sdk_example src/example.cpp)
 target_link_libraries(cl_sdk_example PRIVATE CorticalLabsCpp)
+
+# Tests & Benchmarks
+enable_testing()
+
+add_executable(cl_sdk_tests tests/test_runner.cpp)
+target_link_libraries(cl_sdk_tests PRIVATE CorticalLabsCpp)
+add_test(NAME CLSDKTests COMMAND cl_sdk_tests)
+
+add_executable(cl_sdk_benchmark benchmarks/benchmark.cpp)
+target_link_libraries(cl_sdk_benchmark PRIVATE CorticalLabsCpp)
