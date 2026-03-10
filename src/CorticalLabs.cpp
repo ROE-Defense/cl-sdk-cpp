@@ -51,4 +51,12 @@ std::vector<cl_spike_event> DishConnection::receiveSpikes(int max_spikes) {
     return spikes;
 }
 
+int DishConnection::listenUdpFirehose(int port) {
+    int fd = cl_listen_udp_firehose(port);
+    if (fd < 0) {
+        throw HDMEAException("Failed to start UDP Spike Firehose listener.");
+    }
+    return fd;
+}
+
 } // namespace cortical_labs
