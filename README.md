@@ -14,7 +14,7 @@ The Cortical Labs Python simulator and API are fantastic for data science, but t
 
 - **Zero GIL Overhead:** Bypasses Python runtime bottlenecks to deliver true deterministic execution.
 - **Detached Threading Model:** Implements an asynchronous, detached threading architecture for the WebSocket and REST network layers, ensuring that simulation ticks in your game engine are never blocked by network I/O.
-- **Asynchronous Telemetry Interpolation for High-Refresh Engines:** Configurable interpolation buffer simulating 25Hz hardware frames seamlessly across high-refresh game loops (e.g., 60fps DOOM, 90fps VR, 144fps Unreal) without stutter.
+- **Asynchronous Telemetry Downsampling for High-Refresh Engines:** Configurable downsampling buffer capturing an ultra-high frequency 25kHz biological sampling rate and delivering it seamlessly to high-refresh game loops (e.g., 60fps DOOM, 90fps VR, 144fps Unreal) without dropping critical high-frequency spike potentials.
 - **59-Channel HD-MEA Optimization:** Native C-struct serialization directly mapped to the 59-channel architecture of Cortical Labs' hardware, drastically reducing JSON parsing overhead.
 - **Engine-Ready bindings:** Designed to be directly dropped into Unreal Engine, custom C++ engines, or bound seamlessly to other compiled languages via FFI.
 

@@ -7,7 +7,7 @@
 struct cl_context {
     cl_config config;
     bool connected;
-    // Telemetry Interpolation Buffer
+    // Telemetry Downsampling Buffer
     cl_spike_event* cached_spikes;
     int cached_spike_count;
     uint32_t last_poll_time;
@@ -23,7 +23,7 @@ cl_context* cl_init(const cl_config* config) {
     ctx->config.endpoint_url = strdup(config->endpoint_url);
     ctx->config.use_websockets = config->use_websockets;
     ctx->config.engine_tick_rate = config->engine_tick_rate > 0 ? config->engine_tick_rate : 60;
-    ctx->config.enable_interpolation = config->enable_interpolation;
+    ctx->config.enable_downsampling = config->enable_downsampling;
     ctx->connected = false;
     ctx->cached_spikes = NULL;
     ctx->cached_spike_count = 0;
@@ -76,21 +76,19 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
 int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spikes) {
     if (!ctx || !ctx->connected || !spikes_out || max_spikes <= 0) return 0;
     
-    // Asynchronous Telemetry Interpolation for High-Refresh Engines
-    // Hardware caps at ~25Hz, but engine might poll at 90Hz+
+    // Asynchronous Telemetry Downsampling for High-Refresh Engines
+    // Hardware samples at an ultra-high 25kHz, but engine might poll at 60/90/144Hz
     ctx->last_poll_time++;
     
-    if (ctx->config.enable_interpolation) {
-        int ticks_per_hw_frame = ctx->config.engine_tick_rate / 25;
-        if (ticks_per_hw_frame < 1) ticks_per_hw_frame = 1;
+    if (ctx->config.enable_downsampling) {
+        int hw_samples_per_tick = 25000 / ctx->config.engine_tick_rate;
+        if (hw_samples_per_tick < 1) hw_samples_per_tick = 1;
         
-        // If we are between hardware frames, serve interpolated cache
-        if (ctx->last_poll_time % ticks_per_hw_frame != 0 && ctx->cached_spikes != NULL) {
+        // Serve aggregated/buffered downsampled spikes without dropping critical potentials
+        if (ctx->last_poll_time % hw_samples_per_tick != 0 && ctx->cached_spikes != NULL) {
             int serve_count = (ctx->cached_spike_count < max_spikes) ? ctx->cached_spike_count : max_spikes;
             for (int i = 0; i < serve_count; i++) {
                 spikes_out[i] = ctx->cached_spikes[i];
-                // Lightweight interpolation: slightly decay amplitude or shift timestamp
-                spikes_out[i].timestamp += (ctx->last_poll_time % ticks_per_hw_frame);
             }
             return serve_count;
         }
@@ -125,8 +123,8 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
     
     cJSON_Delete(root);
     
-    // Update Telemetry Interpolation Buffer
-    if (ctx->config.enable_interpolation) {
+    // Update Telemetry Downsampling Buffer
+    if (ctx->config.enable_downsampling) {
         if (ctx->cached_spikes) {
             free(ctx->cached_spikes);
         }

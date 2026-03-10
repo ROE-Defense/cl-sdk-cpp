@@ -19,7 +19,7 @@ typedef struct {
     const char* endpoint_url;
     bool use_websockets;
     int engine_tick_rate;      // e.g. 90 for VR, 144 for Unreal
-    bool enable_interpolation; // Asynchronous Telemetry Interpolation
+    bool enable_downsampling; // Asynchronous Telemetry Downsampling (25kHz -> Engine Tick Rate)
 } cl_config;
 
 // Represents a spike event on the HD-MEA
