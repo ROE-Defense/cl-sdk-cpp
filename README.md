@@ -8,6 +8,12 @@
 
 `cl-sdk-cpp` is a zero-overhead 🏎️, bare-metal C/C++ SDK designed specifically for interfacing with Cortical Labs' 59-channel High-Density Microelectrode Arrays (HD-MEA) 🧫. Engineered for AAA game developers 🎮, engine programmers ⚙️, and robotics researchers 🤖, this SDK provides an ultra-low latency bridge between synthetic neural environments and modern game engines 🌉.
 
+## 🔗 Official Documentation & Integration
+
+For the authoritative source on the API and hardware, visit the official **[Cortical Labs Documentation](https://docs.corticallabs.com/)** and the **[official Cortical Labs GitHub](https://github.com/Cortical-Labs)**.
+
+`cl-sdk-cpp` is designed to be fully interoperable with the official `Cortical-Labs/cl-api-doc` schemas and the CL1 Simulator.
+
 ## 🤔 Why C/C++?
 
 The Cortical Labs Python simulator and API are fantastic for data science 📊, but they introduce unacceptable latency in real-time simulations ⏱️. `cl-sdk-cpp` solves this by bypassing the Python Global Interpreter Lock (GIL) entirely 🚀:
