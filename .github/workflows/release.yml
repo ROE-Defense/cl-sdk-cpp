@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: libclsdk-linux.zip
+            lib_name: libclsdk_c_core.a
+            asset_name: cl-sdk-cpp-linux.zip
+          - os: windows-latest
+            artifact_name: libclsdk-windows.zip
+            lib_name: clsdk_c_core.lib
+            asset_name: cl-sdk-cpp-windows.zip
+          - os: macos-latest
+            artifact_name: libclsdk-macos.zip
+            lib_name: libclsdk_c_core.a
+            asset_name: cl-sdk-cpp-macos.zip
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Configure CMake
+      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+
+    - name: Build
+      run: cmake --build build --config Release
+
+    - name: Package
+      shell: bash
+      run: |
+        mkdir -p cl-sdk-release/include
+        mkdir -p cl-sdk-release/lib
+        cp -r include/* cl-sdk-release/include/
+        find build -name "*clsdk_c_core*" -type f -exec cp {} cl-sdk-release/lib/ \;
+        cd cl-sdk-release && zip -r ../${{ matrix.asset_name }} .
+
+    - name: Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: ${{ matrix.asset_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
