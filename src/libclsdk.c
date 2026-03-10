@@ -44,6 +44,9 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
     
     // Construct a generic JSON payload using cJSON to mock network layer transmission
     cJSON* root = cJSON_CreateObject();
+    if (ctx->config.api_key) {
+        cJSON_AddStringToObject(root, "api_key", ctx->config.api_key);
+    }
     cJSON_AddNumberToObject(root, "timestamp", flow->timestamp);
     cJSON* flow_x_arr = cJSON_CreateFloatArray(flow->flow_x, CL_MAX_CHANNELS);
     cJSON* flow_y_arr = cJSON_CreateFloatArray(flow->flow_y, CL_MAX_CHANNELS);
