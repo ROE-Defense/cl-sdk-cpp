@@ -1,54 +1,83 @@
-name: Release
+name: Release Pipeline
 
 on:
   push:
     tags:
       - 'v*'
 
-permissions:
-  contents: write
-
 jobs:
-  release:
+  build_and_release:
+    name: Build and Release
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             artifact_name: libclsdk-linux.zip
-            lib_name: libclsdk_c_core.a
-            asset_name: cl-sdk-cpp-linux.zip
+            lib_file: libclsdk.so
+            cmake_args: ''
           - os: windows-latest
             artifact_name: libclsdk-windows.zip
-            lib_name: clsdk_c_core.lib
-            asset_name: cl-sdk-cpp-windows.zip
+            lib_file: clsdk.dll
+            cmake_args: '-DBUILD_SHARED_LIBS=ON'
           - os: macos-latest
             artifact_name: libclsdk-macos.zip
-            lib_name: libclsdk_c_core.a
-            asset_name: cl-sdk-cpp-macos.zip
+            lib_file: libclsdk.dylib
+            cmake_args: ''
 
-    runs-on: ${{ matrix.os }}
-    
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-    - name: Configure CMake
-      run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.cmake_args }}
 
-    - name: Build
-      run: cmake --build build --config Release
+      - name: Build
+        run: cmake --build build --config Release
 
-    - name: Package
-      shell: bash
-      run: |
-        mkdir -p cl-sdk-release/include
-        mkdir -p cl-sdk-release/lib
-        cp -r include/* cl-sdk-release/include/
-        find build -name "*clsdk_c_core*" -type f -exec cp {} cl-sdk-release/lib/ \;
-        cd cl-sdk-release && zip -r ../${{ matrix.asset_name }} .
+      - name: Prepare Package (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          mkdir package
+          cp -r include package/
+          find build -type f \( -name "*.so" -o -name "*.dylib" \) -exec cp {} package/ \;
+          cd package
+          zip -r ../${{ matrix.artifact_name }} .
 
-    - name: Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: ${{ matrix.asset_name }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Prepare Package (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir package
+          cp -r include package/
+          find build -name "*.dll" -exec cp {} package/ \;
+          cd package
+          Compress-Archive -Path * -DestinationPath ../${{ matrix.artifact_name }}
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+
+  release:
+    name: Create GitHub Release
+    needs: build_and_release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
