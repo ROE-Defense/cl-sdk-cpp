@@ -47,6 +47,11 @@ public:
     /// @param max_spikes Maximum number of spikes to receive in this call
     /// @return A vector of spike events
     std::vector<cl_spike_event> receiveSpikes(int max_spikes = 100);
+
+    /// @brief Start a high-performance UDP Spike Firehose listener for raw CL1 spike streams
+    /// @param port UDP port to listen on
+    /// @return Socket file descriptor
+    static int listenUdpFirehose(int port);
 };
 
 } // namespace cortical_labs
