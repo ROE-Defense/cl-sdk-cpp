@@ -1,5 +1,5 @@
 # Nim FFI binding example for cl-sdk-cpp C-core
-# Proving zero-overhead interop with Ryan's stack
+# Proving zero-overhead interop with game engine stacks
 
 const
   MaxChannels = 59
@@ -9,6 +9,8 @@ type
     apiKey*: cstring
     endpointUrl*: cstring
     useWebsockets*: bool
+    engineTickRate*: cint
+    enableInterpolation*: bool
 
   ClSpikeEvent* {.bycopy.} = object
     timestamp*: uint32
