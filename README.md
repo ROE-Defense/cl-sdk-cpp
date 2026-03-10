@@ -21,6 +21,15 @@ The Cortical Labs Python simulator and API are fantastic for data science 📊, 
 - **Zero GIL Overhead:** Bypasses Python runtime bottlenecks to deliver true deterministic execution 🎯.
 - **CL1 Native UDP Spike Firehose:** Explicitly supports a high-performance UDP listener specifically designed to ingest raw UDP spike streams directly from the CL1. This solves the complex plumbing code issues for real-time Unreal Engine and Vulkan UDP streaming 🌊.
 - **Detached Threading Model:** Implements an asynchronous, detached threading architecture for the WebSocket and REST network layers, ensuring that simulation ticks in your game engine are never blocked by network I/O 🕸️.
+
+## 🧪 Mega Test Suite & Benchmarks
+
+To prove its legitimacy and high performance to the world, `cl-sdk-cpp` includes an absolute **Mega Test Suite** and a rigorous **Benchmark Suite**.
+
+- **Tests:** The `tests/` directory contains an extensive suite validating the 59-channel HD-MEA struct formatting, ensuring byte-perfect memory layout, verifying the UDP Spike Firehose parsing logic, and mathematically proving the determinism of the 25kHz Asynchronous Downsampling Buffer.
+- **Benchmarks:** The `benchmarks/` directory houses microsecond-level latency benchmarks proving the performance delta between JSON deserialization and the raw native UDP Firehose, demonstrating zero overhead routing.
+- **CI/CD:** Every PR and commit is automatically gated by GitHub Actions, running the tests and benchmarks across multiple OS targets to ensure bulletproof reliability.
+
 - **Asynchronous Telemetry Downsampling for High-Refresh Engines:** Configurable 25kHz aggregation buffer designed for the CL1 Simulator and physical CL1 hardware, capturing an ultra-high frequency biological sampling rate and delivering it seamlessly to high-refresh game loops 🏎️ (e.g., 60fps DOOM 👹, 90fps VR 🥽, 144fps Unreal 🕹️) without dropping critical high-frequency spike potentials ⚡️.
 - **59-Channel HD-MEA Optimization:** Native C-struct serialization directly mapped to the 59-channel architecture of Cortical Labs' hardware, drastically reducing JSON parsing overhead 📦.
 - **Engine-Ready bindings:** Designed to be directly dropped into Unreal Engine, custom C++ engines, or bound seamlessly to other compiled languages via FFI 🔌.
