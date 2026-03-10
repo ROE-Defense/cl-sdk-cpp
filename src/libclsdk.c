@@ -3,10 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 
 struct cl_context {
     cl_config config;
@@ -47,7 +43,7 @@ void cl_destroy(cl_context* ctx) {
 bool cl_connect(cl_context* ctx) {
     if (!ctx) return false;
     // Mock connection layer
-    printf("[cl_sdk] 🔌 Initializing hardware bridge to %s (WebSockets: %s)...\n", 
+    printf("[cl_sdk] Initializing hardware bridge to %s (WebSockets: %s)...\n", 
             ctx->config.endpoint_url, ctx->config.use_websockets ? "YES" : "NO");
     ctx->connected = true;
     return true;
@@ -69,7 +65,7 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
     cJSON_AddItemToObject(root, "flow_y", flow_y_arr);
     
     char* json_str = cJSON_PrintUnformatted(root);
-    printf("[cl_sdk] 📡 TX Optical Flow Map: %s\n", json_str);
+    printf("[cl_sdk] TX Optical Flow Map: %s\n", json_str);
     
     free(json_str);
     cJSON_Delete(root);
@@ -80,8 +76,8 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
 int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spikes) {
     if (!ctx || !ctx->connected || !spikes_out || max_spikes <= 0) return 0;
     
-    // Asynchronous Telemetry Downsampling for High-Refresh Engines
-    // Hardware samples at an ultra-high 25kHz, but engine might poll at 60/90/144Hz
+    // Downsample telemetry buffer to match tick rate
+    // Hardware samples at 25kHz, engine polls at configurable rate
     ctx->last_poll_time++;
     
     if (ctx->config.enable_downsampling) {
@@ -140,32 +136,4 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
     }
     
     return count;
-}
-
-int cl_listen_udp_firehose(int port) {
-    int sockfd;
-    struct sockaddr_in servaddr;
-    
-    // Create socket file descriptor
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket creation failed");
-        return -1;
-    }
-    
-    memset(&servaddr, 0, sizeof(servaddr));
-    
-    // Filling server information
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = INADDR_ANY;
-    servaddr.sin_port = htons(port);
-    
-    // Bind the socket with the server address
-    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
-        perror("bind failed");
-        close(sockfd);
-        return -1;
-    }
-    
-    printf("[cl_sdk] 🚀 Native UDP Spike Firehose listening on port %d (CL1 standard)\n", port);
-    return sockfd;
 }
