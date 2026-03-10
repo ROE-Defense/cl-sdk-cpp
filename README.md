@@ -19,6 +19,7 @@ For the authoritative source on the API and hardware, visit the official **[Cort
 The Cortical Labs Python simulator and API are fantastic for data science 📊, but they introduce unacceptable latency in real-time simulations ⏱️. `cl-sdk-cpp` solves this by bypassing the Python Global Interpreter Lock (GIL) entirely 🚀:
 
 - **Zero GIL Overhead:** Bypasses Python runtime bottlenecks to deliver true deterministic execution 🎯.
+- **CL1 Native UDP Spike Firehose:** Explicitly supports a high-performance UDP listener specifically designed to ingest raw UDP spike streams directly from the CL1. This solves the complex plumbing code issues for real-time Unreal Engine and Vulkan UDP streaming 🌊.
 - **Detached Threading Model:** Implements an asynchronous, detached threading architecture for the WebSocket and REST network layers, ensuring that simulation ticks in your game engine are never blocked by network I/O 🕸️.
 - **Asynchronous Telemetry Downsampling for High-Refresh Engines:** Configurable 25kHz aggregation buffer designed for the CL1 Simulator and physical CL1 hardware, capturing an ultra-high frequency biological sampling rate and delivering it seamlessly to high-refresh game loops 🏎️ (e.g., 60fps DOOM 👹, 90fps VR 🥽, 144fps Unreal 🕹️) without dropping critical high-frequency spike potentials ⚡️.
 - **59-Channel HD-MEA Optimization:** Native C-struct serialization directly mapped to the 59-channel architecture of Cortical Labs' hardware, drastically reducing JSON parsing overhead 📦.
