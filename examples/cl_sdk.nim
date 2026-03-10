@@ -46,5 +46,5 @@ when isMainModule:
   if not cl_connect(ctx):
     quit("Failed to connect")
     
-  echo "[Nim] ✅ Successfully connected via Nim FFI to the C-core."
+  echo "[Nim] Successfully connected via Nim FFI to the C-core."
   cl_destroy(ctx)
