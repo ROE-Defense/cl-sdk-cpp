@@ -69,6 +69,11 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
 /// @return Socket file descriptor, or -1 on failure
 int cl_listen_udp_firehose(int port);
 
+/// @brief Start a UDP listener for raw firehose spike streams
+/// @param port UDP port
+/// @return file descriptor or -1 on error
+int cl_listen_udp_firehose(int port);
+
 #ifdef __cplusplus
 }
 #endif
