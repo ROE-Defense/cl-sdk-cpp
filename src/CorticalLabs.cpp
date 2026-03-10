@@ -27,20 +27,20 @@ void DishConnection::connect() {
     }
 }
 
-void DishConnection::sendOpticalFlow(uint32_t timestamp, const std::vector<float>& flow_x, const std::vector<float>& flow_y) {
-    if (flow_x.size() > CL_MAX_CHANNELS || flow_y.size() > CL_MAX_CHANNELS) {
+void DishConnection::sendSensorData(uint32_t timestamp, const std::vector<float>& data_x, const std::vector<float>& data_y) {
+    if (data_x.size() > CL_MAX_CHANNELS || data_y.size() > CL_MAX_CHANNELS) {
         throw HDMEAException("Channel count exceeds 59-channel architecture limit.");
     }
 
-    cl_optical_flow flow = {};
+    cl_sensor_data flow = {};
     flow.timestamp = timestamp;
     
     // Copy data to the strict C-array bounds
-    for (size_t i = 0; i < flow_x.size(); ++i) flow.flow_x[i] = flow_x[i];
-    for (size_t i = 0; i < flow_y.size(); ++i) flow.flow_y[i] = flow_y[i];
+    for (size_t i = 0; i < data_x.size(); ++i) flow.data_x[i] = data_x[i];
+    for (size_t i = 0; i < data_y.size(); ++i) flow.data_y[i] = data_y[i];
 
-    if (!cl_send_optical_flow(m_ctx, &flow)) {
-        throw HDMEAException("Failed to send optical flow data.");
+    if (!cl_send_sensor_data(m_ctx, &flow)) {
+        throw HDMEAException("Failed to send sensor data.");
     }
 }
 

@@ -1,0 +1,33 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "CorticalLabsBPLibrary.Built.h"
+
+USTRUCT(BlueprintType)
+struct FCorticalSpikeEvent
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CorticalLabs")
+    int32 Timestamp;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CorticalLabs")
+    int32 ChannelId;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CorticalLabs")
+    float Amplitude;
+};
+
+UCLASS()
+class CORTICALLABS_API UCorticalLabsBPLibrary : public UBlueprintFunctionLibrary
+{
+	GENERATED_BODY()
+
+public:
+    UFUNCTION(BlueprintCallable, Category = "CorticalLabs")
+    static TArray<FCorticalSpikeEvent> GetLatestSpikes(int32 MaxSpikes);
+
+    UFUNCTION(BlueprintCallable, Category = "CorticalLabs")
+    static bool SendSensorData(const TArray<float>& DataX, const TArray<float>& DataY, int32 Timestamp);
+};

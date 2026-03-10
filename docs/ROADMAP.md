@@ -10,7 +10,7 @@ The development of `cl-sdk-cpp` is an active and ongoing effort to provide a rob
 
 2. **Python Bindings**
    - Provide a set of Python bindings using `pybind11` to allow researchers to interface with `cl-sdk-cpp` from Python scripts.
-   - Support seamless NumPy arrays for spike data and optical flow.
+   - Support seamless NumPy arrays for spike data and sensor data.
 
 3. **Unreal Engine Plugin**
    - Wrap the C++ SDK into an Unreal Engine 5 plugin.

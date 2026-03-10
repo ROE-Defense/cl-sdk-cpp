@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "CorticalLabs SDK",
+	"Description": "Blueprint integration for the Cortical Labs SDK.",
+	"Category": "Scientific",
+	"CreatedBy": "ROE Defense",
+	"CreatedByURL": "https://github.com/ROE-Defense",
+	"DocsURL": "https://github.com/ROE-Defense/cl-sdk-cpp",
+	"MarketplaceURL": "",
+	"SupportURL": "https://github.com/ROE-Defense/cl-sdk-cpp/issues",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "CorticalLabs",
+			"Type": "Runtime",
+			"LoadingPhase": "PreLoadingScreen"
+		}
+	]
+}

@@ -49,7 +49,7 @@ bool cl_connect(cl_context* ctx) {
     return true;
 }
 
-bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
+bool cl_send_sensor_data(cl_context* ctx, const cl_sensor_data* flow) {
     if (!ctx || !ctx->connected || !flow) return false;
     
     // Construct a generic JSON payload using cJSON to mock network layer transmission
@@ -58,14 +58,14 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
         cJSON_AddStringToObject(root, "api_key", ctx->config.api_key);
     }
     cJSON_AddNumberToObject(root, "timestamp", flow->timestamp);
-    cJSON* flow_x_arr = cJSON_CreateFloatArray(flow->flow_x, CL_MAX_CHANNELS);
-    cJSON* flow_y_arr = cJSON_CreateFloatArray(flow->flow_y, CL_MAX_CHANNELS);
+    cJSON* data_x_arr = cJSON_CreateFloatArray(flow->data_x, CL_MAX_CHANNELS);
+    cJSON* data_y_arr = cJSON_CreateFloatArray(flow->data_y, CL_MAX_CHANNELS);
     
-    cJSON_AddItemToObject(root, "flow_x", flow_x_arr);
-    cJSON_AddItemToObject(root, "flow_y", flow_y_arr);
+    cJSON_AddItemToObject(root, "data_x", data_x_arr);
+    cJSON_AddItemToObject(root, "data_y", data_y_arr);
     
     char* json_str = cJSON_PrintUnformatted(root);
-    printf("[cl_sdk] TX Optical Flow Map: %s\n", json_str);
+    printf("[cl_sdk] TX Sensor Data Map: %s\n", json_str);
     
     free(json_str);
     cJSON_Delete(root);

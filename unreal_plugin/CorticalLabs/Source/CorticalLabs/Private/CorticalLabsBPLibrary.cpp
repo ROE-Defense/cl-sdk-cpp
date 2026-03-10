@@ -1,0 +1,26 @@
+#include "CorticalLabsBPLibrary.h"
+
+// Note: You will need to statically link against the CL SDK here
+// #include "CorticalLabs/cl_sdk.h"
+
+TArray<FCorticalSpikeEvent> UCorticalLabsBPLibrary::GetLatestSpikes(int32 MaxSpikes)
+{
+    TArray<FCorticalSpikeEvent> Result;
+    // Mock implementation for boilerplate
+    // TODO: cl_receive_spikes(GlobalContext, RawSpikes, MaxSpikes)
+    
+    // Simulate a fake spike for BP testing
+    FCorticalSpikeEvent MockSpike;
+    MockSpike.Timestamp = 12345;
+    MockSpike.ChannelId = 42;
+    MockSpike.Amplitude = 1.0f;
+    Result.Add(MockSpike);
+
+    return Result;
+}
+
+bool UCorticalLabsBPLibrary::SendSensorData(const TArray<float>& DataX, const TArray<float>& DataY, int32 Timestamp)
+{
+    // TODO: Convert TArray to raw arrays and cl_send_sensor_data(GlobalContext, ...)
+    return true;
+}

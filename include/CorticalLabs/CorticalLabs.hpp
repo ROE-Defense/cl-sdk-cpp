@@ -37,11 +37,11 @@ public:
     /// @brief Establish the connection to the HD-MEA
     void connect();
 
-    /// @brief Send optical flow data to stimulate the dish
+    /// @brief Send sensor data to stimulate the dish
     /// @param timestamp The event timestamp
-    /// @param flow_x X-coordinates of optical flow
-    /// @param flow_y Y-coordinates of optical flow
-    void sendOpticalFlow(uint32_t timestamp, const std::vector<float>& flow_x, const std::vector<float>& flow_y);
+    /// @param data_x X-coordinates of sensor data
+    /// @param data_y Y-coordinates of sensor data
+    void sendSensorData(uint32_t timestamp, const std::vector<float>& data_x, const std::vector<float>& data_y);
 
     /// @brief Receive spike events from the HD-MEA
     /// @param max_spikes Maximum number of spikes to receive in this call

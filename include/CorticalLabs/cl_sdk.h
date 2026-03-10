@@ -30,12 +30,12 @@ typedef struct {
     float amplitude;
 } cl_spike_event;
 
-/// @brief Represents optical flow array for stimulation
+/// @brief Represents sensor data array for stimulation
 typedef struct {
     uint32_t timestamp;
-    float flow_x[CL_MAX_CHANNELS];
-    float flow_y[CL_MAX_CHANNELS];
-} cl_optical_flow;
+    float data_x[CL_MAX_CHANNELS];
+    float data_y[CL_MAX_CHANNELS];
+} cl_sensor_data;
 
 /// @brief Initialize context (zero-overhead C-core)
 /// @param config Configuration parameters
@@ -51,11 +51,11 @@ void cl_destroy(cl_context* ctx);
 /// @return true if connection is successful, false otherwise
 bool cl_connect(cl_context* ctx);
 
-/// @brief Send optical flow array to stimulate dish
+/// @brief Send sensor data array to stimulate dish
 /// @param ctx Pointer to the context
-/// @param flow Pointer to the optical flow structure
+/// @param flow Pointer to the sensor data structure
 /// @return true if successfully sent, false otherwise
-bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow);
+bool cl_send_sensor_data(cl_context* ctx, const cl_sensor_data* flow);
 
 /// @brief Receive spikes (generic JSON mock parsing)
 /// @param ctx Pointer to the context
