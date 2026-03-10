@@ -43,7 +43,7 @@ void cl_destroy(cl_context* ctx) {
 bool cl_connect(cl_context* ctx) {
     if (!ctx) return false;
     // Mock connection layer
-    printf("[cl_sdk] 🔌 Initializing hardware bridge to %s (WebSockets: %s)...\n", 
+    printf("[cl_sdk] Initializing hardware bridge to %s (WebSockets: %s)...\n", 
             ctx->config.endpoint_url, ctx->config.use_websockets ? "YES" : "NO");
     ctx->connected = true;
     return true;
@@ -65,7 +65,7 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
     cJSON_AddItemToObject(root, "flow_y", flow_y_arr);
     
     char* json_str = cJSON_PrintUnformatted(root);
-    printf("[cl_sdk] 📡 TX Optical Flow Map: %s\n", json_str);
+    printf("[cl_sdk] TX Optical Flow Map: %s\n", json_str);
     
     free(json_str);
     cJSON_Delete(root);
@@ -76,8 +76,8 @@ bool cl_send_optical_flow(cl_context* ctx, const cl_optical_flow* flow) {
 int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spikes) {
     if (!ctx || !ctx->connected || !spikes_out || max_spikes <= 0) return 0;
     
-    // Asynchronous Telemetry Downsampling for High-Refresh Engines
-    // Hardware samples at an ultra-high 25kHz, but engine might poll at 60/90/144Hz
+    // Downsample telemetry buffer to match tick rate
+    // Hardware samples at 25kHz, engine polls at configurable rate
     ctx->last_poll_time++;
     
     if (ctx->config.enable_downsampling) {
