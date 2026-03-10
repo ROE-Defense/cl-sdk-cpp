@@ -3,6 +3,7 @@
 [![Build Status](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/build.yml/badge.svg)](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/build.yml)
 [![Security](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/codeql.yml/badge.svg)](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/codeql.yml)
 [![Latest Release](https://img.shields.io/github/v/release/ROE-Defense/cl-sdk-cpp)](https://github.com/ROE-Defense/cl-sdk-cpp/releases/latest)
+[![Live Demo](https://img.shields.io/badge/Live-WASM_Demo-success.svg)](https://ROE-Defense.github.io/cl-sdk-cpp/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-C%2B%2B17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
@@ -16,6 +17,14 @@
 ### 🔥 Killer Feature: Asynchronous Telemetry Downsampling Buffer (25kHz -> 90Hz)
 
 Bypass runtime bottlenecks! The SDK utilizes a fully detached threading model and an **Asynchronous Telemetry Downsampling Buffer** that seamlessly scales the raw 25kHz biological sampling rate down to engine-friendly update loops (e.g., 90Hz for VR or 144Hz for high-refresh rendering), without dropping critical high-frequency spike potentials.
+
+---
+
+## 🌐 Live Interactive WebAssembly Demo
+
+Experience the C-core running natively in your browser! We've compiled the high-performance telemetry downsampling engine to WebAssembly. 
+
+[👉 **Click here to view the live 59-channel telemetry demo.**](https://ROE-Defense.github.io/cl-sdk-cpp/)
 
 ---
 

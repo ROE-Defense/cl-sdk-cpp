@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cl-sdk-cpp Live Telemetry Demo (WASM)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #000000;
+            background-image: radial-gradient(circle at 50% 0%, #1a1a24 0%, #000000 70%);
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: rgba(20, 20, 25, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .glass-card {
+            background: rgba(30, 30, 35, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+        }
+
+        .glow-text {
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        #dish {
+            display: grid;
+            grid-template-columns: repeat(10, 24px);
+            grid-gap: 8px;
+            padding: 32px;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        #dish::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            background: rgba(10, 10, 15, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 40px rgba(0,0,0,0.8), 0 0 20px rgba(255,255,255,0.02);
+            z-index: -1;
+        }
+
+        .electrode {
+            width: 24px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .hidden-electrode {
+            visibility: hidden;
+        }
+        
+        /* Utility animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-slow {
+            animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-white/20">
+
+    <div class="glass-panel p-10 flex flex-col items-center max-w-2xl w-full mx-4 relative overflow-hidden">
+        <!-- Subtle background glow -->
+        <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="text-center mb-10 z-10">
+            <h1 class="text-3xl font-semibold tracking-tight gradient-text mb-2">Cortical Labs HD-MEA</h1>
+            <p class="text-zinc-400 text-sm font-medium tracking-wide">LIVE 59-CHANNEL TELEMETRY (WASM CORE)</p>
+        </div>
+        
+        <div class="relative z-10 mb-10 flex justify-center items-center">
+            <div class="absolute w-full h-full bg-blue-500/5 rounded-full blur-2xl animate-pulse-slow"></div>
+            <div id="dish"></div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-6 w-full max-w-md z-10">
+            <div class="glass-card p-5 flex flex-col items-center justify-center">
+                <span class="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Buffer Drain Rate</span>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-bold text-white glow-text" id="fps">0</span>
+                    <span class="text-sm text-zinc-400">Hz</span>
+                </div>
+            </div>
+            <div class="glass-card p-5 flex flex-col items-center justify-center">
+                <span class="text-xs text-zinc-500 font-semibold uppercase tracking-wider mb-1">Total Spikes</span>
+                <div class="flex items-baseline gap-1">
+                    <span class="text-3xl font-bold text-white glow-text" id="spikes">0</span>
+                    <span class="text-sm text-zinc-400">/sec</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="cl_sdk.js"></script>
+    <script>
+        const grid = document.getElementById('dish');
+        const electrodes = [];
+        const layout = [
+            0,1,1,1,1,1,1,1,1,0,
+            1,1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,1,
+            1,1,1,1,1,1,1,1,1,1,
+            0,1,1,1,1,1,1,1,1,0
+        ];
+
+        let electrodeIndex = 0;
+        for (let i = 0; i < 80; i++) {
+            const div = document.createElement('div');
+            if (layout[i] === 1 && electrodeIndex < 59) {
+                div.className = 'electrode';
+                electrodes.push(div);
+                electrodeIndex++;
+            } else {
+                div.className = 'electrode hidden-electrode';
+            }
+            grid.appendChild(div);
+        }
+
+        let frameCount = 0;
+        let spikeCount = 0;
+        let lastTime = performance.now();
+
+        Module.onRuntimeInitialized = () => {
+            Module._init_sdk();
+            
+            function update() {
+                Module._process_telemetry();
+                
+                for (let i = 0; i < 59; i++) {
+                    const voltage = Module._get_channel_voltage(i);
+                    if (voltage > 0) {
+                        const intensity = Math.floor(voltage * 255);
+                        electrodes[i].style.backgroundColor = `rgba(100, 200, 255, ${voltage})`;
+                        electrodes[i].style.borderColor = `rgba(150, 220, 255, ${voltage + 0.2})`;
+                        electrodes[i].style.boxShadow = `0 0 12px rgba(100, 200, 255, ${voltage * 0.8}), inset 0 0 8px rgba(255, 255, 255, ${voltage * 0.5})`;
+                        spikeCount++;
+                    } else {
+                        electrodes[i].style.backgroundColor = 'rgba(255, 255, 255, 0.03)';
+                        electrodes[i].style.borderColor = 'rgba(255, 255, 255, 0.05)';
+                        electrodes[i].style.boxShadow = 'none';
+                    }
+                }
+
+                frameCount++;
+                const now = performance.now();
+                if (now - lastTime >= 1000) {
+                    document.getElementById('fps').innerText = frameCount;
+                    document.getElementById('spikes').innerText = spikeCount;
+                    frameCount = 0;
+                    spikeCount = 0;
+                    lastTime = now;
+                }
+
+                requestAnimationFrame(update);
+            }
+            update();
+        };
+    </script>
+</body>
+</html>
