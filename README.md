@@ -120,4 +120,5 @@ int main() {
 ```
 
 ---
-*Maintained under Roe Defense.*
+*Maintained under Roe Defense.*### Temporal Drift Mitigation
+The new TickRate enumeration completely eliminates phase jitter when bridging high-frequency MEA outputs to bounded physics engines.
