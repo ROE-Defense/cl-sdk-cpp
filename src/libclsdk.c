@@ -139,6 +139,7 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
     return count;
 }
 
+#ifndef _WIN32
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -160,3 +161,8 @@ int cl_listen_udp_firehose(int port) {
     }
     return fd;
 }
+#else
+int cl_listen_udp_firehose(int port) {
+    return -1; // Not implemented on Windows
+}
+#endif
