@@ -8,21 +8,23 @@
 [![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-C%2B%2B17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 
-**⚡️ High-Performance C/C++ SDK for Cortical Labs HD-MEA ⚡️**
+**⚡️ High-Performance C/C++ SDK for Synthetic Biological Intelligence (SBI) ⚡️**
 
-`cl-sdk-cpp` is a C/C++ SDK designed for interfacing with Cortical Labs' 59-channel High-Density Microelectrode Arrays (HD-MEA). It provides a low-latency, hardware-agnostic network bridge for connecting simulations or engines to the CL1 array. **Note that this SDK is an agnostic network pipe, not a Spiking Neural Network itself.**
+`cl-sdk-cpp` is a systems-level C/C++ SDK engineered for robust interfacing with Cortical Labs' 59-channel High-Density Microelectrode Arrays (HD-MEA). Designed to serve as a low-latency, hardware-agnostic network bridge, it enables seamless coupling of Arbitrary Simulation Environments to the physical CL1 array. 
+
+This SDK adheres strictly to the **Zero-Mock Doctrine**; it provides a transparent, unadulterated telemetry pipe rather than synthesizing data. It is not an artificial neural network mock; it is a conduit for live biological computation.
 
 ---
 
-### 🔥 Killer Feature: Asynchronous Telemetry Downsampling Buffer (25kHz -> 90Hz)
+### 🔥 Core Feature: Asynchronous Telemetry Downsampling & Temporal Synchronization
 
-Bypass runtime bottlenecks! The SDK utilizes a fully detached threading model and an **Asynchronous Telemetry Downsampling Buffer** that seamlessly scales the raw 25kHz biological sampling rate down to engine-friendly update loops (e.g., 90Hz for VR or 144Hz for high-refresh rendering), without dropping critical high-frequency spike potentials.
+Biological substrates operate on fundamentally different timescales than digital environments. The SDK resolves runtime bottlenecks via a fully detached threading model and an **Asynchronous Telemetry Downsampling Buffer**. This mechanism reliably scales raw 25kHz biological sampling rates down to update loops suitable for arbitrary client rendering (e.g., 90Hz or 144Hz loops) while maintaining rigorous temporal synchronization and preserving critical high-frequency spike potentials.
 
 ---
 
 ## 🌐 Live Interactive WebAssembly Demo
 
-Experience the C-core running natively in your browser! We've compiled the high-performance telemetry downsampling engine to WebAssembly. 
+Experience the core telemetry pipeline natively in-browser. The high-performance downsampling engine has been cross-compiled to WebAssembly for seamless demonstration.
 
 [👉 **Click here to view the live 59-channel telemetry demo.**](https://ROE-Defense.github.io/cl-sdk-cpp/)
 
@@ -30,12 +32,12 @@ Experience the C-core running natively in your browser! We've compiled the high-
 
 ## 🏗️ Dual-Engine Architecture
 
-Developers love diagrams. Here is how the high-performance pipeline flows from synthetic environments, to the biological substrate, and back:
+To facilitate deterministic SBI integration, the high-performance pipeline routes data from the physical biological substrate to the target environment as follows:
 
 ```text
     +-----------------------+ Hardware-Agnostic Sensor Data +-------------------------+
-    |  Synthetic Workspace  |  (Pixels, Raycasts, Audio)  |     CL1 / Simulator     |
-    |  (UE5 / Nim Engine)   | --------------------------> |    (59-Channel Array)   |
+    | Arbitrary Simulation  |  (Pixels, Raycasts, Audio)  |     CL1 / Simulator     |
+    |      Environment      | --------------------------> |    (59-Channel Array)   |
     +-----------------------+                             +-------------------------+
                ^                                                       |
                |                                                       |
@@ -54,22 +56,22 @@ For authoritative API references, visit the [Cortical Labs Documentation](https:
 
 ## 🧠 Architecture Highlights
 
-1. **C Core (`libclsdk`):** A C99 library managing socket connections, threading, and JSON serialization.
-2. **C++ OOP Layer (`CorticalLabs.hpp`):** A C++17 wrapper offering RAII semantics and STL abstractions.
-3. **Unreal Engine 5 Plugin (`CorticalLabs.uplugin`):** Native Blueprint Plugin support mapping the SDK into Blueprint nodes (`GetLatestSpikes`, `SendSensorData`) and C++ modules.
+1. **C Core (`libclsdk`):** A strict C99 library managing socket connections, threading, and JSON serialization.
+2. **C++ OOP Layer (`CorticalLabs.hpp`):** A C++17 wrapper offering standard RAII semantics and STL abstractions.
+3. **Client Engine Plugin:** A native integration plugin mapping the SDK into visual scripting nodes and C++ modules for arbitrary simulation engines.
 4. **Nim FFI (`cl_sdk.nim`):** Bindings for Nim integration.
 
 ## 🔌 Supported Integration Layers
 
 - [x] Native C/C++ ABI
 - [x] Nim FFI
-- [x] Unreal Engine 5 (.uplugin)
+- [x] Client Engine Plugin (.uplugin architecture compliant)
 - [ ] Python 3.12 (ctypes / pybind11) [Coming Soon]
 
 ## 🗺️ Roadmap
 
 - **Multi-Dish Orchestrator for distributed biology:** Manage and cluster multiple HD-MEA dishes efficiently.
-- **Hardware-Agnostic Encoder Templates:** Out-of-the-box sensor encoding for (LiDAR, Sensor Data, Spectrogram).
+- **Hardware-Agnostic Encoder Templates:** Out-of-the-box sensor encoding for varied data streams (LiDAR, spatial telemetry, raw spectrum).
 - **Lock-Free Ring Buffers (SPSC) for zero-copy, zero-allocation microsecond memory pipelines.**
 - **`.cl1_rec` Binary Replay System for deterministic, frame-by-frame biological session debugging.**
 - **Native PyTorch / Jupyter Integration via `pybind11` for seamless AI research workflows.**
