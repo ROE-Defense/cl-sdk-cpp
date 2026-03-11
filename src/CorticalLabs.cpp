@@ -3,11 +3,13 @@
 
 namespace cortical_labs {
 
-DishConnection::DishConnection(const std::string& endpoint, const std::string& api_key, bool use_websockets) {
+DishConnection::DishConnection(const std::string& endpoint, const std::string& api_key, bool use_websockets, TickRate target_hz) {
     cl_config config;
     config.endpoint_url = endpoint.c_str();
     config.api_key = api_key.empty() ? nullptr : api_key.c_str();
     config.use_websockets = use_websockets;
+    config.engine_tick_rate = static_cast<int>(target_hz);
+    config.enable_downsampling = (target_hz != TickRate::UNLOCKED);
 
     m_ctx = cl_init(&config);
     if (!m_ctx) {

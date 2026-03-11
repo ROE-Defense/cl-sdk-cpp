@@ -21,11 +21,22 @@ private:
     cl_context* m_ctx;
 
 public:
+    /// @brief Target engine tick rates for telemetry downsampling
+    enum class TickRate {
+        HZ_30 = 30,
+        HZ_60 = 60,
+        HZ_90 = 90,
+        HZ_120 = 120,
+        HZ_144 = 144,
+        UNLOCKED = 0
+    };
+
     /// @brief Initialize a DishConnection instance
     /// @param endpoint Endpoint URL
     /// @param api_key API key for authentication
     /// @param use_websockets Whether to use websockets
-    DishConnection(const std::string& endpoint, const std::string& api_key = "", bool use_websockets = true);
+    /// @param target_hz Target engine tick rate for telemetry downsampling
+    DishConnection(const std::string& endpoint, const std::string& api_key = "", bool use_websockets = true, TickRate target_hz = TickRate::HZ_60);
     
     /// @brief Destructor
     ~DishConnection();

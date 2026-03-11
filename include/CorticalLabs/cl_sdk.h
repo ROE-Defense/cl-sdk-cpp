@@ -19,7 +19,7 @@ typedef struct {
     const char* api_key;
     const char* endpoint_url;
     bool use_websockets;
-    int engine_tick_rate;      // e.g. 90 for VR, 144 for Unreal
+    int engine_tick_rate;      // Target engine tick rate (e.g. 30, 60, 90, 120, 144)
     bool enable_downsampling; // Telemetry downsampling (25kHz -> Engine Tick Rate)
 } cl_config;
 

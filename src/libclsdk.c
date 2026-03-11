@@ -81,7 +81,8 @@ int cl_receive_spikes(cl_context* ctx, cl_spike_event* spikes_out, int max_spike
     ctx->last_poll_time++;
     
     if (ctx->config.enable_downsampling) {
-        int hw_samples_per_tick = 25000 / ctx->config.engine_tick_rate;
+        double poll_interval_ms = 1000.0 / ctx->config.engine_tick_rate;
+        int hw_samples_per_tick = (int)(25.0 * poll_interval_ms); // 25000 samples/sec = 25 samples/ms
         if (hw_samples_per_tick < 1) hw_samples_per_tick = 1;
         
         // Serve aggregated/buffered downsampled spikes without dropping critical potentials
