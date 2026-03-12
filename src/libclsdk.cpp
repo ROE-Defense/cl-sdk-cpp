@@ -67,6 +67,59 @@ void parse_url(const std::string& url, std::string& host, std::string& port, std
     }
 }
 
+void udp_worker(cl_context* ctx, int port) {
+    int sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        std::cerr << "[cl_sdk] FATAL: Failed to open UDP Firehose socket.\n";
+        ctx->connected = false;
+        return;
+    }
+
+    struct sockaddr_in servaddr;
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(port);
+
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        std::cerr << "[cl_sdk] FATAL: UDP Firehose bind failed on port " << port << "\n";
+        close(sockfd);
+        ctx->connected = false;
+        return;
+    }
+
+    std::cout << "[cl_sdk] UDP Firehose ACTIVE. Listening for 25kHz binary spikes on port " << port << "...\n";
+    ctx->connected = true;
+
+    // Set non-blocking so we can check should_exit
+    int flags = fcntl(sockfd, F_GETFL, 0);
+    fcntl(sockfd, F_SETFL, flags | O_NONBLOCK);
+
+    uint8_t buffer[1500];
+    while (!ctx->should_exit) {
+        ssize_t n = recvfrom(sockfd, buffer, sizeof(buffer), 0, nullptr, nullptr);
+        if (n > 0) {
+            if (n >= 9) { // 8 byte timestamp + at least 1 byte channel
+                uint64_t ts;
+                memcpy(&ts, buffer, 8); // Little-endian 64-bit uint
+                
+                std::lock_guard<std::mutex> lock(ctx->buffer_mutex);
+                for (ssize_t i = 8; i < n; i++) {
+                    cl_spike_event sp;
+                    sp.timestamp = (uint32_t)(ts & 0xFFFFFFFF); // Cast down for our struct
+                    sp.channel_id = buffer[i] % CL_MAX_CHANNELS;
+                    sp.amplitude = 100.0f; // UDP Firehose doesn't provide amplitude, so we default it
+                    ctx->spike_queue.push(sp);
+                }
+            }
+        } else {
+            // Sleep for 1 millisecond to prevent 100% CPU lock in non-blocking wait
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+    close(sockfd);
+}
+
 void network_worker(cl_context* ctx) {
     if (ctx->is_simulator) {
         while (!ctx->should_exit) {
@@ -208,14 +261,27 @@ void cl_destroy(cl_context* ctx) {
 bool cl_connect(cl_context* ctx) {
     if (!ctx) return false;
     
+    std::string url = ctx->config.endpoint_url;
     if (ctx->is_simulator) {
-        std::cout << "[cl_sdk] Initializing Local Biological Simulator (Integrate-and-Fire Model)...\n";
+        std::cout << "[cl_sdk] Initializing Local Biological Simulator (Integrate-and-Fire Model)...
+";
+        ctx->network_thread = std::thread(network_worker, ctx);
+        ctx->connected = true;
+    } else if (url.rfind("udp://", 0) == 0) {
+        // Parse the port from udp://0.0.0.0:12345
+        size_t colon = url.find_last_of(":");
+        int port = 12345;
+        if (colon != std::string::npos && colon > 5) {
+            port = std::stoi(url.substr(colon + 1));
+        }
+        ctx->network_thread = std::thread(udp_worker, ctx, port);
     } else {
-        std::cout << "[cl_sdk] Initializing hardware bridge to " << ctx->config.endpoint_url << "\n";
+        std::cout << "[cl_sdk] Initializing hardware bridge to " << ctx->config.endpoint_url << "
+";
+        ctx->network_thread = std::thread(network_worker, ctx);
+        ctx->connected = true;
     }
     
-    ctx->network_thread = std::thread(network_worker, ctx);
-    ctx->connected = true; // For simulator, it's instant. For network, it might take a sec.
     return true;
 }
 
