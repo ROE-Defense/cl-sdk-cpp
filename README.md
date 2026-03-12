@@ -1,124 +1,70 @@
-# 🧠 cl-sdk-cpp
+# 🧠 cl-sdk-cpp (Prototype)
 
 [![Build Status](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/build.yml/badge.svg)](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/build.yml)
 [![Security](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/codeql.yml/badge.svg)](https://github.com/ROE-Defense/cl-sdk-cpp/actions/workflows/codeql.yml)
-[![Latest Release](https://img.shields.io/github/v/release/ROE-Defense/cl-sdk-cpp)](https://github.com/ROE-Defense/cl-sdk-cpp/releases/latest)
-[![Live Demo](https://img.shields.io/badge/Live-WASM_Demo-success.svg)](https://ROE-Defense.github.io/cl-sdk-cpp/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![C Standard](https://img.shields.io/badge/C-C99-blue.svg)](https://en.wikipedia.org/wiki/C99)
 [![C++ Standard](https://img.shields.io/badge/C%2B%2B-C%2B%2B17-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B17)
 
-**⚡️ High-Performance C/C++ SDK for Synthetic Biological Intelligence (SBI) ⚡️**
+**⚡️ High-Performance C/C++ SDK Architecture Prototype for Cortical Link ⚡️**
 
-`cl-sdk-cpp` is a systems-level C/C++ SDK engineered for robust interfacing with Cortical Labs' 59-channel High-Density Microelectrode Arrays (HD-MEA). Designed to serve as a low-latency, hardware-agnostic network bridge, it enables seamless coupling of Arbitrary Simulation Environments to the physical CL1 array. 
+This repository is a **systems architecture prototype** designed to demonstrate how a high-performance C/C++ network bridge can eliminate Python GIL bottlenecks when interfacing with Cortical Labs' 25kHz HD-MEA arrays. 
 
-This SDK adheres strictly to the **Zero-Mock Doctrine**; it provides a transparent, unadulterated telemetry pipe rather than synthesizing data. It is not an artificial neural network mock; it is a conduit for live biological computation.
-
----
-
-### 🔥 Core Feature: Asynchronous Telemetry Downsampling & Temporal Synchronization
-
-Biological substrates operate on fundamentally different timescales than digital environments. The SDK resolves runtime bottlenecks via a fully detached threading model and an **Asynchronous Telemetry Downsampling Buffer**. This mechanism reliably scales raw 25kHz biological sampling rates down to update loops suitable for arbitrary client rendering (e.g., 90Hz or 144Hz loops) while maintaining rigorous temporal synchronization and preserving critical high-frequency spike potentials.
+> **NOTICE:** This SDK is currently an architectural mock-up featuring a biologically accurate Leaky Integrate-and-Fire (LIF) local simulator. It does *not* yet contain the proprietary TCP/UDP transport schemas required to interface with the physical CL1 hardware, as those protocols are currently closed-source. 
 
 ---
 
-## 🌐 Live Interactive WebAssembly Demo
+## 🎯 The Problem: The Python GIL Bottleneck
 
-Experience the core telemetry pipeline natively in-browser. The high-performance downsampling engine has been cross-compiled to WebAssembly for seamless demonstration.
+The official Cortical Labs `cl` Python SDK relies on `asyncio` to ingest massive 25kHz spike arrays. Due to Python's Global Interpreter Lock (GIL), the CPU spends substantial cycles unpacking JSON/Protobuf streams on the main thread. 
 
-[👉 **Click here to view the live 59-channel telemetry demo.**](https://ROE-Defense.github.io/cl-sdk-cpp/)
+When researchers attempt to bind the biological tissue to high-refresh physics engines (like Unreal Engine 5 or headless reinforcement learning environments like ViZDoom), the Python network overhead starves the physics engine. This causes dropped frames, latency spikes, and temporal desynchronization—ultimately destroying the biological operant conditioning loop.
+
+## 🛠️ The Solution: A Native C++ Proxy
+
+`cl-sdk-cpp` solves this by entirely bypassing the Python GIL. 
+
+1. **Detached Network Thread:** The SDK spawns an independent POSIX thread using `Boost.Beast` and `OpenSSL`.
+2. **Native Telemetry Downsampling:** It ingests the 25kHz raw data stream in raw C++ memory, aggregating and downsampling it to the user's requested engine tick rate (e.g., 60Hz or 144Hz).
+3. **Zero-Copy Handoff:** Through `pybind11` or Unreal Engine Blueprints, the SDK hands a clean, pre-calculated memory pointer back to the physics engine precisely when the render frame ticks.
+
+By offloading the network storm to a C++ background thread, the primary engine can maintain a locked 60/144 FPS simulation with zero temporal drift.
 
 ---
 
-## 🏗️ Dual-Engine Architecture
+## 🔬 Built-in Biological Simulator
 
-To facilitate deterministic SBI integration, the high-performance pipeline routes data from the physical biological substrate to the target environment as follows:
+To facilitate local pipeline testing without burning physical API credits, the SDK currently defaults to a highly-optimized **Leaky Integrate-and-Fire (LIF)** mathematical simulator running natively in the C-Core.
+
+- Simulates resting membrane potentials (-70mV).
+- Calculates temporal voltage decay and absolute refractory periods (-90mV).
+- Injects stochastic Gaussian noise to replicate biological basal firing rates.
+- Automatically clamps inbound stimulation arrays to safety thresholds (+/- 150mV) and enforces strict biphasic, zero-net-charge injection protocols to prevent software from theoretically "cooking" the tissue.
+
+**Benchmark:** The local LIF simulator processes 10,000 frames of 59-channel stimulation and emits 100,000 biological spikes in **0.05 seconds** (191,000 Ticks/sec on a single thread).
+
+## 🏗️ Architecture
 
 ```text
-    +-----------------------+ Hardware-Agnostic Sensor Data +-------------------------+
-    | Arbitrary Simulation  |  (Pixels, Raycasts, Audio)  |     CL1 / Simulator     |
-    |      Environment      | --------------------------> |    (59-Channel Array)   |
-    +-----------------------+                             +-------------------------+
-               ^                                                       |
-               |                                                       |
-               |           Biphasic Voltage Signals / Biological Spikes|
-               |                  (UDP Firehose / REST)                |
-               |                                                       |
-               |                 +-------------------------+           |
-               +-----------------|   cl-sdk-cpp C Core     |<----------+
-                                 | (Downsampling Buffer)   |
-                                 +-------------------------+
+    +-----------------------+                                     +-------------------------+
+    | Arbitrary Simulation  |     Raw Float Arrays (Stimulus)     |  Detached C++ SDK Core  |
+    |      Environment      | ----------------------------------> | (Boost.Beast + OpenSSL) |
+    |  (UE5 / Python RL)    |                                     |                         |
+    |                       | <---------------------------------- |  (Telemetry Aggregator) |
+    +-----------------------+   Zero-Copy Downsampled Array       +-------------------------+
+                                                                             ^ |
+                                                       25kHz Spike Avalanche | | Proprietary Binary Stream
+                                                                             | v
+                                                                  +-------------------------+
+                                                                  |     Cortical Labs       |
+                                                                  |   Physical CL1 Array    |
+                                                                  +-------------------------+
 ```
 
-## 🔗 Official Documentation & Integration
+## 🗺️ Roadmap & Integration Goals
 
-For authoritative API references, visit the [Cortical Labs Documentation](https://docs.corticallabs.com/) and [Cortical Labs GitHub](https://github.com/Cortical-Labs).
-
-## 🧠 Architecture Highlights
-
-1. **C Core (`libclsdk`):** A strict C99 library managing socket connections, threading, and JSON serialization.
-2. **C++ OOP Layer (`CorticalLabs.hpp`):** A C++17 wrapper offering standard RAII semantics and STL abstractions.
-3. **Client Engine Plugin:** A native integration plugin mapping the SDK into visual scripting nodes and C++ modules for arbitrary simulation engines.
-4. **Nim FFI (`cl_sdk.nim`):** Bindings for Nim integration.
-
-## 🔌 Supported Integration Layers
-
-- [x] Native C/C++ ABI
-- [x] Nim FFI
-- [x] Client Engine Plugin (.uplugin architecture compliant)
-- [ ] Python 3.12 (ctypes / pybind11) [Coming Soon]
-
-## 🗺️ Roadmap
-
-- **Multi-Dish Orchestrator for distributed biology:** Manage and cluster multiple HD-MEA dishes efficiently.
-- **Hardware-Agnostic Encoder Templates:** Out-of-the-box sensor encoding for varied data streams (LiDAR, spatial telemetry, raw spectrum).
-- **Lock-Free Ring Buffers (SPSC) for zero-copy, zero-allocation microsecond memory pipelines.**
-- **`.cl1_rec` Binary Replay System for deterministic, frame-by-frame biological session debugging.**
-- **Native PyTorch / Jupyter Integration via `pybind11` for seamless AI research workflows.**
-
-## 🏁 Getting Started
-
-### 📋 Prerequisites
-- CMake 3.10+
-- A C++17 compatible compiler
-- Cortical Labs API Key
-
-### 🛠️ Build Instructions
-
-```bash
-mkdir build && cd build
-cmake ..
-make -j4
-```
-
-### 🚀 Quick Start (C++ Wrapper)
-
-```cpp
-#include "CorticalLabs.hpp"
-#include <iostream>
-
-using namespace cortical_labs;
-
-int main() {
-    try {
-        DishConnection dish("wss://api.corticallabs.com/v1/dish", "YOUR_API_KEY");
-        dish.connect();
-
-        std::vector<float> sensor_data_x(59, 0.5f);
-        std::vector<float> sensor_data_y(59, -0.2f);
-        dish.sendSensorData(1005, sensor_data_x, sensor_data_y);
-
-        auto spikes = dish.receiveSpikes(100);
-        for (const auto& s : spikes) {
-            std::cout << "Spike on Ch " << (int)s.channel_id << " Amp: " << s.amplitude << "\n";
-        }
-    } catch (const HDMEAException& e) {
-        std::cerr << "Error: " << e.what() << "\n";
-    }
-    return 0;
-}
-```
+- **Proprietary Schema Mapping:** Awaiting access to the official `cl` transport layer schemas to replace the LIF simulator with the live Melbourne network bindings.
+- **Unreal Engine 5 Plugin:** Wrapping the `pybind11` architecture into an `.uplugin` for direct Blueprint visual scripting access.
+- **Lock-Free Ring Buffers (SPSC):** Replacing mutexes with single-producer/single-consumer ring buffers for microsecond memory pipelines.
 
 ---
-*Maintained under Roe Defense.*### Temporal Drift Mitigation
-The new TickRate enumeration completely eliminates phase jitter when bridging high-frequency MEA outputs to bounded physics engines.
+*Maintained under Roe Defense.*

@@ -47,6 +47,7 @@ void DishConnection::sendSensorData(uint32_t timestamp, const std::vector<float>
 }
 
 std::vector<cl_spike_event> DishConnection::receiveSpikes(int max_spikes) {
+    if (max_spikes > 59) max_spikes = 59;
     std::vector<cl_spike_event> spikes(max_spikes);
     int count = cl_receive_spikes(m_ctx, spikes.data(), max_spikes);
     spikes.resize(count);

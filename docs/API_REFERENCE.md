@@ -1,6 +1,6 @@
 # ROE-Defense C++ SDK API Reference
 
-Welcome to the API Reference for the ROE-Defense Wetware Compute SDK. This SDK provides a comprehensive, low-latency wrapper around the Cortical Labs DishBrain REST and WebSocket interfaces. It is designed to allow high-performance integration of synthetic biological intelligence into C++ applications.
+Welcome to the API Reference for the C/C++ SDK for the Cortical Link platform. This SDK provides a comprehensive, low-latency wrapper around the Cortical Labs DishBrain REST and WebSocket interfaces. It is designed to allow high-performance integration of neuroscience arrays and biological computing substrates into C++ applications.
 
 ## Table of Contents
 1. [Initialization and Configuration](#initialization)
@@ -37,7 +37,7 @@ CorticalLabs::Client client(
 
 ## Session Management <a name="session-management"></a>
 
-Sessions define isolated compute environments within the wetware cluster.
+Sessions define isolated compute environments within the biological cluster.
 
 ### `CorticalLabs::Session`
 

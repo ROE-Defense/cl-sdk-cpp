@@ -1,4 +1,4 @@
-using ClientBuildTool;
+using UnrealBuildTool;
 
 public class CorticalLabs : ModuleRules
 {

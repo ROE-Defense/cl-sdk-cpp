@@ -57,7 +57,7 @@ bool cl_connect(cl_context* ctx);
 /// @return true if successfully sent, false otherwise
 bool cl_send_sensor_data(cl_context* ctx, const cl_sensor_data* flow);
 
-/// @brief Receive spikes (generic JSON mock parsing)
+/// @brief Receive spikes (generic JSON parsing)
 /// @param ctx Pointer to the context
 /// @param spikes_out Array to hold the received spikes
 /// @param max_spikes Maximum number of spikes to receive

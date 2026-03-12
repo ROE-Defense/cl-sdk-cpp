@@ -57,7 +57,7 @@ public:
     /// @brief Receive spike events from the HD-MEA
     /// @param max_spikes Maximum number of spikes to receive in this call
     /// @return A vector of spike events
-    std::vector<cl_spike_event> receiveSpikes(int max_spikes = 100);
+    std::vector<cl_spike_event> receiveSpikes(int max_spikes = 59);
 
     /// @brief Start a high-performance UDP Spike Firehose listener for raw CL1 spike streams
     /// @param port UDP port to listen on
