@@ -14,7 +14,7 @@ class get_pybind_include(object):
 ext_modules = [
     Extension(
         'cl_sdk_cpp',
-        ['python_bindings.cpp', 'src/CorticalLabs.cpp', 'src/libclsdk.cpp', 'third_party/cJSON.c'],
+        ['python_bindings.cpp', 'src/CorticalLabs.cpp', 'src/libclsdk.cpp'],
         include_dirs=[
             get_pybind_include(),
             get_pybind_include(user=True),
@@ -48,10 +48,7 @@ class BuildExt(build_ext):
             opts.append('-DVERSION_INFO="%s"' % self.distribution.get_version())
             opts.append('-std=c++17')
             # Assuming Linux with Boost installed globally
-            if sys.platform.startswith("linux"):
-                opts.append('-DUSE_BOOST_BEAST')
-                for ext in self.extensions:
-                    ext.libraries.extend(['boost_system', 'boost_thread', 'ssl', 'crypto'])
+
         for ext in self.extensions:
             ext.extra_compile_args = opts
         build_ext.build_extensions(self)
